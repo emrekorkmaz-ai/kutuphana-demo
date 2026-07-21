@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Üyelik Başvurusu - Yenişehir Kütüphaneleri</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-5" style="max-width:640px;">
+  <h2 class="text-navy fw-bold text-center mb-4">Üyelik Başvurusu</h2>
+
+  <div class="step-indicator">
+    <div class="step active" id="ind1"><div class="circle">1</div> Bilgiler</div>
+    <div class="step" id="ind2"><div class="circle">2</div> Yükümlülükler</div>
+  </div>
+
+  <!-- ADIM 1 -->
+  <div class="card p-4" id="step1">
+    <div class="row">
+      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.name">Ad Soyad *</label><input type="text" id="bName" class="form-control"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.phone">Telefon *</label><input type="text" id="bPhone" class="form-control" placeholder="05XXXXXXXXX"></div>
+      <div class="col-md-6 mb-3"><label class="form-label">Şifre *</label><input type="password" id="bPassword" class="form-control" placeholder="En az 6 karakter"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.email">E-posta</label><input type="email" id="bEmail" class="form-control" placeholder="ornek@eposta.com"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.birthDate">Doğum Tarihi</label><input type="date" id="bBirth" class="form-control"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.nationalId">T.C. Kimlik No</label><input type="text" id="bNational" maxlength="11" class="form-control" placeholder="11 haneli"></div>
+      <div class="col-12 mb-3"><label class="form-label" data-field="member.address">Adres</label><input type="text" id="bAddress" class="form-control"></div>
+      <div class="col-12 mb-3">
+        <label class="form-label" data-field="member.library">Üye Olmak İstediğiniz Kütüphane *</label>
+        <select id="bLibrary" class="form-select"></select>
+      </div>
+      <div class="col-12" id="extraFieldsHolder"></div>
+    </div>
+    <button class="btn btn-orange w-100 mt-2" onclick="goToStep2()">Devam Et</button>
+  </div>
+
+  <!-- ADIM 2 -->
+  <div class="card p-4 d-none" id="step2">
+    <h6 class="text-navy">Kütüphane Kullanım ve İade Yükümlülükleri</h6>
+    <div class="terms-box mb-3">
+      <p>Kütüphane üyeliği kapsamında ödünç aldığım kitapları belirlenen iade tarihine kadar teslim etmeyi, kitaplara zarar vermemeyi, kaybetmem veya zarar vermem durumunda kitabın güncel bedelini veya muadilini kütüphaneye teslim etmeyi kabul ederim.</p>
+      <p>İletişim bilgilerimin güncel tutulmasından ve kütüphane tarafından gönderilecek hatırlatma mesajlarını takip etmekten sorumlu olduğumu, üyelik bilgilerimin Mersin Yenişehir Belediyesi Kütüphane Takip Sistemi'nde saklanacağını kabul ederim.</p>
+      <p>Süresi içinde iade edilmeyen kitaplar için kütüphane personelinin benimle iletişime geçebileceğini, tekrarlanan gecikmelerin üyelik durumumu etkileyebileceğini biliyorum.</p>
+    </div>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="bTermsCheck">
+      <label class="form-check-label small" for="bTermsCheck">Okudum, kabul ediyorum.</label>
+    </div>
+    <button class="btn btn-orange w-100" id="completeBtn" onclick="completeBasvuru()">Başvuruyu Tamamla</button>
+    <button class="btn btn-link w-100 mt-1" onclick="backToStep1()">Geri Dön</button>
+  </div>
+
+  <!-- BAŞARILI -->
+  <div class="card p-4 d-none text-center" id="stepDone">
+    <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
+    <h5 class="text-navy mt-2">Başvurunuz Tamamlandı</h5>
+    <p class="text-muted">Üyeliğiniz oluşturuldu. Artık üye girişi ile portala erişebilirsiniz.</p>
+    <a href="uye-girisi.html" class="btn btn-navy">Üye Girişine Git</a>
+  </div>
+</div>
+
+<div id="app-footer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  await initPublicPage();
+  renderPublicNavbar('basvuru');
+  renderPublicFooter();
+  applyCoreFieldLabels();
+  const data = getData();
+  document.getElementById('bLibrary').innerHTML = data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}${l.status === 'soon' ? ' (Yakında Açılacak)' : ''}</option>`).join('');
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('member', {}) + '</div>';
+})();
+
+function setStep(n) {
+  [1, 2].forEach(i => {
+    document.getElementById('step' + i).classList.toggle('d-none', i !== n);
+    const ind = document.getElementById('ind' + i);
+    ind.classList.toggle('active', i === n);
+    ind.classList.toggle('done', i < n);
+  });
+}
+
+function goToStep2() {
+  const name = document.getElementById('bName').value.trim();
+  const phone = document.getElementById('bPhone').value.trim();
+  const password = document.getElementById('bPassword').value;
+  const library = document.getElementById('bLibrary').value;
+  const nationalId = document.getElementById('bNational').value.trim();
+  const email = document.getElementById('bEmail').value.trim();
+  if (!name || !phone || !library) { showToast('Ad soyad, telefon ve kütüphane seçimi zorunludur.', 'danger'); return; }
+  if (!password || password.length < 6) { showToast('Şifre en az 6 karakter olmalıdır.', 'danger'); return; }
+  if (nationalId && !/^\d{11}$/.test(nationalId)) { showToast('T.C. Kimlik No 11 haneli olmalıdır.', 'danger'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Geçerli bir e-posta adresi girin.', 'danger'); return; }
+  setStep(2);
+}
+
+function backToStep1() { setStep(1); }
+
+async function completeBasvuru() {
+  if (!document.getElementById('bTermsCheck').checked) { showToast('Devam etmek için yükümlülükleri kabul etmelisiniz.', 'danger'); return; }
+
+  const btn = document.getElementById('completeBtn');
+  btn.disabled = true;
+  const res = await memberSignup({
+    name: document.getElementById('bName').value.trim(),
+    phone: normalizeTrPhone(document.getElementById('bPhone').value.trim()),
+    password: document.getElementById('bPassword').value,
+    email: document.getElementById('bEmail').value.trim(),
+    address: document.getElementById('bAddress').value.trim(),
+    birthDate: document.getElementById('bBirth').value,
+    nationalId: document.getElementById('bNational').value.trim(),
+    library: document.getElementById('bLibrary').value,
+    termsAcceptedAt: todayStr(),
+    extra: collectExtraFields(document.getElementById('extraFieldsHolder'))
+  });
+  btn.disabled = false;
+
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+
+  document.getElementById('step2').classList.add('d-none');
+  document.querySelector('.step-indicator').classList.add('d-none');
+  document.getElementById('stepDone').classList.remove('d-none');
+}
+</script>
+</body>
+</html>

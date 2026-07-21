@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yıpranmış Kitaplar - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için personel girişi yapmalısınız. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="section-title">Yıpranmış Kitaplar</h2>
+        <p class="text-muted mb-0" id="libraryLabel"></p>
+      </div>
+      <div id="libSwitcherHolder"></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <div class="card p-3" id="retireFormCard">
+          <h6 class="text-navy">İmha Talebi Oluştur</h6>
+          <div class="mb-2">
+            <label class="form-label small">Kitap *</label>
+            <select id="rBook" class="form-select form-select-sm"></select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Adet *</label>
+            <input type="number" id="rQty" class="form-control form-control-sm" min="1" value="1">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Sebep *</label>
+            <select id="rReason" class="form-select form-select-sm"></select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Tarih</label>
+            <input type="date" id="rDate" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Açıklama</label>
+            <textarea id="rDesc" class="form-control form-control-sm" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">Kanıt Fotoğrafı</label>
+            <input type="file" id="rPhoto" accept="image/*" class="form-control form-control-sm" onchange="handlePhoto(this)">
+            <img id="rPhotoPreview" class="evidence-photo mt-2 d-none">
+          </div>
+          <button class="btn btn-navy w-100" onclick="submitRetirement()">İmha Talebini Gönder</button>
+          <div class="small text-muted mt-2">Talebiniz Sistem Yöneticisi onayına düşer; onaylanmadan stok değişmez.</div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item"><button class="nav-link active" data-tab="pending" onclick="switchRetTab('pending')">Onay Bekleyenler <span class="badge bg-orange" id="pendingCountBadge"></span></button></li>
+          <li class="nav-item"><button class="nav-link" data-tab="approved" onclick="switchRetTab('approved')">Onaylananlar</button></li>
+          <li class="nav-item"><button class="nav-link" data-tab="rejected" onclick="switchRetTab('rejected')">Reddedilenler</button></li>
+        </ul>
+        <div id="retList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Yazdır / Çıktı Modal -->
+<div class="modal fade" id="printModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header no-print">
+        <h5 class="modal-title text-navy">İmha Tutanağı</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="printContent"></div>
+      <div class="modal-footer no-print">
+        <button class="btn btn-navy" onclick="printReport()">Yazdır / PDF Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+let currentPhotoBase64 = '';
+let retTab = 'pending';
+
+(async () => {
+  if (await initAdminPage('imha', { requireLogin: true })) boot();
+})();
+
+function boot() {
+  document.getElementById('rReason').innerHTML = RETIREMENT_REASONS.map(r => `<option>${r}</option>`).join('');
+  document.getElementById('rDate').value = todayStr();
+  renderLibSwitcher();
+  document.getElementById('libraryLabel').textContent = libraryName(getEffectiveLibrary());
+
+  if (!hasPermission('retire_books')) {
+    document.getElementById('retireFormCard').innerHTML = '<div class="alert alert-warning mb-0">İmha talebi oluşturmak için yetkiniz bulunmuyor.</div>';
+  } else {
+    populateBookSelect();
+  }
+  document.getElementById('pendingCountBadge').textContent = '';
+  renderRetList();
+}
+
+function renderLibSwitcher() {
+  const staff = getCurrentStaff();
+  const holder = document.getElementById('libSwitcherHolder');
+  if (staff.activeLibrary !== 'all') { holder.innerHTML = ''; return; }
+  const data = getData();
+  const current = getEffectiveLibrary();
+  holder.innerHTML = `<select class="form-select form-select-sm" onchange="setEffectiveLibrary(this.value); location.reload();">
+    ${data.libraries.map(l => `<option value="${l.id}" ${l.id === current ? 'selected' : ''}>${escapeHtml(l.name)}</option>`).join('')}
+  </select>`;
+}
+
+function populateBookSelect() {
+  const data = getData();
+  const lib = getEffectiveLibrary();
+  const books = data.books.filter(b => b.library === lib && b.stock > 0);
+  document.getElementById('rBook').innerHTML = books.map(b => `<option value="${b.id}">${escapeHtml(b.title)} (${b.stock} adet mevcut)</option>`).join('') || '<option value="">Uygun kitap yok</option>';
+}
+
+function handlePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    currentPhotoBase64 = e.target.result;
+    const img = document.getElementById('rPhotoPreview');
+    img.src = currentPhotoBase64;
+    img.classList.remove('d-none');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitRetirement() {
+  if (!requirePermission('retire_books', 'İmha Talebi Oluşturma')) return;
+  const bookId = document.getElementById('rBook').value;
+  const qty = document.getElementById('rQty').value;
+  const reason = document.getElementById('rReason').value;
+  if (!bookId || !qty || Number(qty) < 1) { showToast('Kitap ve adet alanları zorunludur.', 'danger'); return; }
+
+  const data = getData();
+  const book = data.books.find(b => b.id === bookId);
+  if (Number(qty) > book.stock) { showToast('Girilen adet mevcut stoktan fazla olamaz.', 'danger'); return; }
+
+  const summary = `${book.title}\nAdet: ${qty}\nSebep: ${reason}\nTarih: ${formatDateTR(document.getElementById('rDate').value || todayStr())}\n\nBu imha talebi Sistem Yöneticisi onayına gönderilecektir. Onaylanmadan stok değişmeyecektir. Devam etmek istiyor musunuz?`;
+  if (!confirm(summary)) return;
+
+  await createRetirementRequest({
+    bookId, qty, reason,
+    desc: document.getElementById('rDesc').value.trim(),
+    photo: currentPhotoBase64
+  });
+  showToast('İmha talebiniz onaya gönderildi.', 'success');
+  currentPhotoBase64 = '';
+  document.getElementById('rPhotoPreview').classList.add('d-none');
+  document.getElementById('rQty').value = 1;
+  document.getElementById('rDesc').value = '';
+  populateBookSelect();
+  renderRetList();
+}
+
+function switchRetTab(key) {
+  retTab = key;
+  document.querySelectorAll('#page-content .nav-link').forEach(el => el.classList.toggle('active', el.dataset.tab === key));
+  renderRetList();
+}
+
+function renderRetList() {
+  const data = getData();
+  const lib = getEffectiveLibrary();
+  const staff = getCurrentStaff();
+  const scopeAll = staff.activeLibrary === 'all' && hasPermission('view_reports_all');
+
+  let list = data.retirements.filter(r => scopeAll ? true : r.library === lib).filter(r => r.status === retTab);
+  list.sort((a, c) => new Date(c.date) - new Date(a.date));
+
+  const pendingCount = data.retirements.filter(r => (scopeAll ? true : r.library === lib) && r.status === 'pending').length;
+  document.getElementById('pendingCountBadge').textContent = pendingCount || '';
+
+  const canApprove = hasPermission('approve_retirements');
+
+  document.getElementById('retList').innerHTML = list.map(r => {
+    let actions = '';
+    if (r.status === 'pending' && canApprove) {
+      actions = `<button class="btn btn-sm btn-navy" onclick="doApprove('${r.id}')">Onayla</button>
+                 <button class="btn btn-sm btn-outline-danger ms-1" onclick="doReject('${r.id}')">Reddet</button>`;
+    }
+    if (r.status === 'approved') {
+      actions = `<button class="btn btn-sm btn-outline-navy" onclick="showPrint('${r.id}')">Yazdır / Çıktı</button>`;
+    }
+    const photoHtml = r.photo ? `<img src="${r.photo}" class="evidence-photo mt-2">` : '';
+    return `<div class="card p-3 mb-2">
+      <div class="d-flex justify-content-between">
+        <div>
+          <strong>${escapeHtml(r.title)}</strong>${r.rentalId ? ' <span class="badge bg-orange">Ödünçte Kayıp</span>' : ''}
+          <div class="small text-muted">${escapeHtml(libraryName(r.library))} · ${r.qty} adet · ${escapeHtml(r.reason)}</div>
+          <div class="small text-muted">Talep eden: ${escapeHtml(r.requestedBy)} · ${formatDateTR(r.date)}</div>
+          ${r.desc ? `<div class="small mt-1">${escapeHtml(r.desc)}</div>` : ''}
+          ${r.approvedBy ? `<div class="small text-muted mt-1">İşlemi yapan: ${escapeHtml(r.approvedBy)} (${formatDateTR(r.approvedDate)})</div>` : ''}
+          ${photoHtml}
+        </div>
+        <div class="text-end">${actions}</div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="text-muted text-center py-4">Kayıt bulunamadı.</div>';
+}
+
+async function doApprove(id) {
+  if (!requirePermission('approve_retirements', 'İmha Onaylama')) return;
+  await approveRetirement(id);
+  showToast('İmha onaylandı, stok güncellendi.', 'success');
+  populateBookSelect();
+  renderRetList();
+}
+
+async function doReject(id) {
+  if (!requirePermission('approve_retirements', 'İmha Onaylama')) return;
+  await rejectRetirement(id);
+  showToast('İmha talebi reddedildi.', 'success');
+  renderRetList();
+}
+
+function showPrint(id) {
+  const data = getData();
+  const r = data.retirements.find(x => x.id === id);
+  const report = (data.settings && data.settings.reportTemplate) || {};
+  const institutionName = report.institutionName || 'Mersin Yenişehir Belediyesi';
+  const title = report.title || 'İmha Tutanağı';
+  const footerText = fillTemplate(report.footerText || '', { tarih: formatDateTR(todayStr()) });
+  const logoUrl = new URL('assets/yenisehir-logo.svg', location.href).href;
+  document.getElementById('printContent').innerHTML = `
+    <div class="text-center mb-3">
+      <img src="${logoUrl}" style="width:56px;"><br>
+      <strong>${escapeHtml(institutionName)}</strong><br>
+      <span class="small">${escapeHtml(libraryName(r.library))} — ${escapeHtml(title)}</span>
+    </div>
+    <table class="table table-sm">
+      <tr><th>Kitap</th><td>${escapeHtml(r.title)}</td></tr>
+      <tr><th>Adet</th><td>${r.qty}</td></tr>
+      <tr><th>Sebep</th><td>${escapeHtml(r.reason)}</td></tr>
+      <tr><th>Açıklama</th><td>${escapeHtml(r.desc || '—')}</td></tr>
+      <tr><th>Talep Tarihi</th><td>${formatDateTR(r.date)}</td></tr>
+      <tr><th>Talep Eden</th><td>${escapeHtml(r.requestedBy)}</td></tr>
+      <tr><th>Onaylayan</th><td>${escapeHtml(r.approvedBy)}</td></tr>
+      <tr><th>Onay Tarihi</th><td>${formatDateTR(r.approvedDate)}</td></tr>
+    </table>
+    ${r.photo ? `<img src="${r.photo}" class="evidence-photo">` : ''}
+    ${footerText ? `<p class="small text-muted mt-3">${escapeHtml(footerText)}</p>` : ''}
+  `;
+  new bootstrap.Modal(document.getElementById('printModal')).show();
+}
+
+function printReport() {
+  const content = document.getElementById('printContent').innerHTML;
+  const win = window.open('', '_blank', 'width=800,height=900');
+  if (!win) { showToast('Yazdırma penceresi açılamadı. Tarayıcınızın pop-up engelleyicisini kontrol edin.', 'danger'); return; }
+  win.document.open();
+  win.document.write(`<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>İmha Tutanağı</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { padding: 24px; font-family: 'Source Sans 3', Arial, sans-serif; }
+  .evidence-photo { max-width: 100%; margin-top: 12px; border-radius: 6px; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>${content}</body>
+</html>`);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
+</script>
+</body>
+</html>

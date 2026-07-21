@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Üye Girişi - Yenişehir Kütüphaneleri</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-5">
+
+  <!-- GİRİŞ -->
+  <div id="loginBox" class="mx-auto d-none" style="max-width:460px;">
+    <h2 class="text-navy fw-bold text-center mb-4">Üye Girişi</h2>
+    <div class="card p-4">
+      <div class="mb-3"><label class="form-label">Telefon</label><input type="text" id="lPhone" class="form-control" placeholder="05XXXXXXXXX"></div>
+      <div class="mb-3"><label class="form-label">Şifre</label><input type="password" id="lPassword" class="form-control"></div>
+      <button class="btn btn-navy w-100" id="loginBtn" onclick="doMemberLogin()">Giriş Yap</button>
+      <div class="text-center mt-3 small"><a href="uye-basvuru.html">Henüz üye değil misiniz? Üye olun</a></div>
+    </div>
+  </div>
+
+  <!-- PORTAL -->
+  <div id="portalBox" class="d-none">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+      <div>
+        <h2 class="text-navy fw-bold">Merhaba, <span id="memberNameLabel"></span></h2>
+        <p class="text-muted mb-0">Üyelik Tarihi: <span id="memberSinceLabel"></span> · Kütüphane: <span id="memberLibLabel"></span></p>
+      </div>
+      <button class="btn btn-outline-navy" onclick="logoutMember()">Çıkış Yap</button>
+    </div>
+
+    <div class="alert alert-warning">
+      <strong>Hatırlatma:</strong> Ödünç aldığınız kitapları zamanında iade etmemeniz durumunda kütüphane personelimiz sizinle iletişime geçebilir; tekrarlanan gecikmeler üyelik durumunuzu etkileyebilir.
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="table-responsive-card h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="text-navy mb-0">Bilgilerimi Güncelle</h6>
+          </div>
+          <div class="mb-2"><label class="form-label small">Ad Soyad</label><input type="text" id="mpName" class="form-control form-control-sm"></div>
+          <div class="mb-2"><label class="form-label small">E-posta</label><input type="email" id="mpEmail" class="form-control form-control-sm" placeholder="ornek@eposta.com"></div>
+          <div class="mb-2"><label class="form-label small">Adres</label><input type="text" id="mpAddress" class="form-control form-control-sm"></div>
+          <div class="mb-2"><label class="form-label small">Telefon</label><input type="text" class="form-control form-control-sm" disabled id="mpPhone"></div>
+          <div class="small text-muted mb-2">Telefon değişikliği için lütfen kütüphane ile iletişime geçin.</div>
+          <button class="btn btn-navy btn-sm" onclick="updateMemberInfo()">Kaydet</button>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="table-responsive-card h-100">
+          <h6 class="text-navy">İstek Listesi</h6>
+          <p class="small text-muted">Kataloğumuzda olmasını istediğiniz bir kitap mı var?</p>
+          <div class="input-group input-group-sm mb-2">
+            <input type="text" id="wishTitle" class="form-control" placeholder="Kitap adı">
+            <button class="btn btn-navy" onclick="submitWishlist()">Gönder</button>
+          </div>
+          <div id="myWishlist"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive-card mb-4">
+      <h6 class="text-navy mb-3">Aktif Ödünçlerim</h6>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Kitap</th><th>Alış Tarihi</th><th>İade Tarihi</th><th>Durum</th><th></th></tr></thead>
+          <tbody id="activeRentalsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-responsive-card">
+      <h6 class="text-navy mb-3">Geçmiş Ödünçlerim</h6>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Kitap</th><th>Alış Tarihi</th><th>İade Tarihi</th></tr></thead>
+          <tbody id="pastRentalsTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="app-footer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  await initPublicPage();
+  renderPublicNavbar('giris');
+  renderPublicFooter();
+  const existingMember = getCurrentMember();
+  if (existingMember) { showPortal(existingMember); } else { document.getElementById('loginBox').classList.remove('d-none'); }
+})();
+
+async function doMemberLogin() {
+  const phone = normalizeTrPhone(document.getElementById('lPhone').value.trim());
+  const password = document.getElementById('lPassword').value;
+  if (!password) { showToast('Şifrenizi girin.', 'danger'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  const res = await memberLogin(phone, password);
+  btn.disabled = false;
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  document.getElementById('loginBox').classList.add('d-none');
+  document.getElementById('portalBox').classList.remove('d-none');
+  showPortal(res.user);
+}
+
+function showPortal(member) {
+  document.getElementById('loginBox').classList.add('d-none');
+  document.getElementById('portalBox').classList.remove('d-none');
+  const data = getData();
+  const fresh = data.users.find(u => u.id === member.id) || member;
+
+  document.getElementById('memberNameLabel').textContent = fresh.name;
+  document.getElementById('memberSinceLabel').textContent = formatDateTR(fresh.addedDate);
+  document.getElementById('memberLibLabel').textContent = libraryName(fresh.library);
+  document.getElementById('mpName').value = fresh.name;
+  document.getElementById('mpEmail').value = fresh.email || '';
+  document.getElementById('mpAddress').value = fresh.address || '';
+  document.getElementById('mpPhone').value = fresh.phone;
+
+  const rentals = data.rentals.filter(r => r.userId === fresh.id);
+  const active = rentals.filter(r => !r.returnDate && !r.lost);
+  const past = rentals.filter(r => r.returnDate || r.lost);
+
+  document.getElementById('activeRentalsTable').innerHTML = active.map(r => {
+    const book = data.books.find(b => b.id === r.bookId) || { title: '—' };
+    const st = rentalStatus(r);
+    const alreadyRequested = data.requests.some(q => q.type === 'extend' && q.rentalId === r.id && q.status === 'pending');
+    return `<tr>
+      <td>${escapeHtml(book.title)}</td>
+      <td>${formatDateTR(r.rentalDate)}</td>
+      <td>${formatDateTR(r.dueDate)}</td>
+      <td><span class="badge bg-${st.cls}">${st.label}</span></td>
+      <td>${alreadyRequested ? '<span class="small text-muted">Talep gönderildi</span>' : `<button class="btn btn-sm btn-outline-navy" onclick="requestExtend('${r.id}')">Süre Uzatma Talep Et</button>`}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">Aktif ödünç kaydınız yok.</td></tr>';
+
+  document.getElementById('pastRentalsTable').innerHTML = past.map(r => {
+    const book = data.books.find(b => b.id === r.bookId) || { title: '—' };
+    return `<tr><td>${escapeHtml(book.title)}</td><td>${formatDateTR(r.rentalDate)}</td><td>${formatDateTR(r.returnDate)}</td></tr>`;
+  }).join('') || `<tr><td colspan="3" class="text-center text-muted py-3">Geçmiş ödünç kaydınız yok. (Toplam: ${past.length})</td></tr>`;
+
+  renderMyWishlist(fresh.id);
+}
+
+function renderMyWishlist(userId) {
+  const data = getData();
+  const mine = data.requests.filter(r => r.type === 'wishlist' && r.userId === userId);
+  const statusBadge = { pending: '<span class="badge bg-orange">Bekliyor</span>', approved: '<span class="badge bg-green">Değerlendirildi</span>', rejected: '<span class="badge bg-secondary">Reddedildi</span>' };
+  document.getElementById('myWishlist').innerHTML = mine.map(r => `<div class="small mb-1">${escapeHtml(r.bookTitle)} ${statusBadge[r.status]}</div>`).join('') || '<div class="small text-muted">Henüz istek göndermediniz.</div>';
+}
+
+async function updateMemberInfo() {
+  const email = document.getElementById('mpEmail').value.trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Geçerli bir e-posta adresi girin.', 'danger'); return; }
+  const res = await updateOwnMemberProfile({
+    name: document.getElementById('mpName').value.trim(),
+    email,
+    address: document.getElementById('mpAddress').value.trim()
+  });
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Bilgileriniz güncellendi.', 'success');
+  showPortal(res.user);
+}
+
+async function requestExtend(rentalId) {
+  const member = getCurrentMember();
+  const note = prompt('Süre uzatma talebiniz için kısa bir not eklemek ister misiniz? (opsiyonel)') || '';
+  await addRequest({ type: 'extend', userId: member.id, rentalId, note });
+  showToast('Süre uzatma talebiniz gönderildi.', 'success');
+  showPortal(member);
+}
+
+async function submitWishlist() {
+  const title = document.getElementById('wishTitle').value.trim();
+  if (!title) return;
+  const member = getCurrentMember();
+  await addRequest({ type: 'wishlist', userId: member.id, bookTitle: title, note: '' });
+  document.getElementById('wishTitle').value = '';
+  showToast('İsteğiniz gönderildi.', 'success');
+  renderMyWishlist(member.id);
+}
+</script>
+</body>
+</html>

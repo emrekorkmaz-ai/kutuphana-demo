@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rapor - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için personel girişi yapmalısınız. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <h2 class="section-title mb-3">Rapor</h2>
+
+    <ul class="nav nav-tabs mb-3" id="reportTabs">
+      <li class="nav-item"><button class="nav-link active" data-tab="own" onclick="switchTab('own')">Kendi Kütüphanem</button></li>
+      <li class="nav-item d-none" id="tabCompareItem"><button class="nav-link" data-tab="compare" onclick="switchTab('compare')">Kütüphaneler Arası Karşılaştırma</button></li>
+      <li class="nav-item d-none" id="tabAuditItem"><button class="nav-link" data-tab="audit" onclick="switchTab('audit')">Kayıt &amp; İmha Denetimi</button></li>
+    </ul>
+
+    <!-- KENDİ KÜTÜPHANEM -->
+    <div id="tab-own">
+      <div class="card p-3 mb-3">
+        <div class="row g-2">
+          <div class="col-md-3"><label class="form-label small">Başlangıç</label><input type="date" id="fStart" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Bitiş</label><input type="date" id="fEnd" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Kategori</label><select id="fCategory" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+          <div class="col-md-3"><label class="form-label small">Durum</label>
+            <select id="fStatus" class="form-select form-select-sm">
+              <option value="">Tümü</option><option value="active">Ödünçte</option><option value="overdue">Gecikmiş</option><option value="returned">İade Edildi</option><option value="lost">Kayıp</option>
+            </select>
+          </div>
+          <div class="col-md-4"><label class="form-label small">Üye</label><select id="fUser" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+          <div class="col-md-4"><label class="form-label small">Kitap</label><select id="fBook" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+          <div class="col-md-4 d-flex align-items-end"><button class="btn btn-navy btn-sm w-100" onclick="renderOwnTab()">Filtrele</button></div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3" id="ownStatCards"></div>
+
+      <div class="card p-3 mb-3">
+        <h6 class="text-navy">Kategoriye Göre Stok Durumu</h6>
+        <canvas id="ownChart" height="90"></canvas>
+      </div>
+
+      <div class="table-responsive-card mb-3">
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Üye</th><th>Kitap</th><th>Alış</th><th>İade Tarihi</th><th>Durum</th></tr></thead>
+            <tbody id="ownResultsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="table-responsive-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="text-navy mb-0">En Çok Ödünç Alınan Kitaplar</h6>
+              <button class="btn btn-sm btn-outline-secondary" disabled title="Yakında Eklenecek">Excel</button>
+            </div>
+            <ol class="list-group list-group-numbered" id="topBooksList"></ol>
+            <button class="btn btn-link btn-sm mt-2" onclick="toggleExpand('books')" id="toggleBooksBtn">Tümünü Göster</button>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="table-responsive-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="text-navy mb-0">En Aktif Üyeler</h6>
+              <button class="btn btn-sm btn-outline-secondary" disabled title="Yakında Eklenecek">Excel</button>
+            </div>
+            <ol class="list-group list-group-numbered" id="topUsersList"></ol>
+            <button class="btn btn-link btn-sm mt-2" onclick="toggleExpand('users')" id="toggleUsersBtn">Tümünü Göster</button>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="table-responsive-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="text-navy mb-0">En Çok Geciktiren Üyeler</h6>
+              <button class="btn btn-sm btn-outline-secondary" disabled title="Yakında Eklenecek">Excel</button>
+            </div>
+            <ol class="list-group list-group-numbered" id="topOverdueList"></ol>
+            <button class="btn btn-link btn-sm mt-2" onclick="toggleExpand('overdue')" id="toggleOverdueBtn">Tümünü Göster</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KARŞILAŞTIRMA -->
+    <div id="tab-compare" class="d-none">
+      <div class="card p-3 mb-3">
+        <h6 class="text-navy">Kütüphaneye Göre Kitap Dağılımı</h6>
+        <canvas id="compareChart" height="90"></canvas>
+      </div>
+      <div class="table-responsive-card">
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Kütüphane</th><th>Kitap Türü</th><th>Toplam Nüsha</th><th>Boşta Nüsha</th><th>Üye Sayısı</th><th>Aktif Ödünç</th><th>Gecikmiş</th></tr></thead>
+            <tbody id="compareTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DENETİM -->
+    <div id="tab-audit" class="d-none">
+      <div class="card p-3 mb-3">
+        <div class="row g-2">
+          <div class="col-md-3"><label class="form-label small">Başlangıç</label><input type="date" id="aStart" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Bitiş</label><input type="date" id="aEnd" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Kütüphane</label><select id="aLibrary" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+          <div class="col-md-3 d-flex align-items-end"><button class="btn btn-navy btn-sm w-100" onclick="renderAuditTab()">Filtrele</button></div>
+        </div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="table-responsive-card">
+            <h6 class="text-navy">Dönemde Eklenen Kitaplar</h6>
+            <div class="table-responsive"><table class="table table-sm align-middle">
+              <thead><tr><th>Kitap</th><th>Kütüphane</th><th>Tarih</th><th>Kaynak</th></tr></thead>
+              <tbody id="auditAddedTable"></tbody>
+            </table></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="table-responsive-card">
+            <h6 class="text-navy">İmha Kayıtları</h6>
+            <div class="table-responsive"><table class="table table-sm align-middle">
+              <thead><tr><th>Kitap</th><th>Kütüphane</th><th>Tarih</th><th>Durum</th></tr></thead>
+              <tbody id="auditRetireTable"></tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+let ownChartInstance = null, compareChartInstance = null;
+const expandState = { books: false, users: false, overdue: false };
+
+(async () => {
+  if (await initAdminPage('rapor', { requireLogin: true })) boot();
+})();
+
+function boot() {
+  const staff = getCurrentStaff();
+  if (hasPermission('view_reports_all')) {
+    document.getElementById('tabCompareItem').classList.remove('d-none');
+    document.getElementById('tabAuditItem').classList.remove('d-none');
+  }
+  const data = getData();
+  document.getElementById('fCategory').innerHTML += data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  document.getElementById('fUser').innerHTML += data.users.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
+  document.getElementById('aLibrary').innerHTML += data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
+
+  renderOwnTab();
+  if (hasPermission('view_reports_all')) {
+    renderCompareTab();
+    renderAuditTab();
+  }
+}
+
+function switchTab(key) {
+  document.querySelectorAll('#reportTabs .nav-link').forEach(el => el.classList.toggle('active', el.dataset.tab === key));
+  ['own', 'compare', 'audit'].forEach(k => document.getElementById('tab-' + k).classList.toggle('d-none', k !== key));
+}
+
+function getOwnLibrary() {
+  return getEffectiveLibrary();
+}
+
+function renderOwnTab() {
+  const data = getData();
+  const lib = getOwnLibrary();
+  const start = document.getElementById('fStart').value;
+  const end = document.getElementById('fEnd').value;
+  const catF = document.getElementById('fCategory').value;
+  const statusF = document.getElementById('fStatus').value;
+  const userF = document.getElementById('fUser').value;
+
+  document.getElementById('fBook').innerHTML = '<option value="">Tümü</option>' +
+    data.books.filter(b => b.library === lib).map(b => `<option value="${b.id}">${escapeHtml(b.title)}</option>`).join('');
+  const bookF = document.getElementById('fBook').value;
+
+  let rentals = data.rentals.filter(r => {
+    const book = data.books.find(b => b.id === r.bookId);
+    if (!book || book.library !== lib) return false;
+    if (start && r.rentalDate < start) return false;
+    if (end && r.rentalDate > end) return false;
+    if (userF && r.userId !== userF) return false;
+    if (bookF && r.bookId !== bookF) return false;
+    if (catF) {
+      const catMatch = Array.isArray(book.category) ? book.category.includes(catF) : book.category === catF;
+      if (!catMatch) return false;
+    }
+    const st = rentalStatus(r);
+    if (statusF === 'active' && (r.returnDate || r.lost || st.overdueDays > 0)) return false;
+    if (statusF === 'overdue' && (r.lost || st.overdueDays <= 0)) return false;
+    if (statusF === 'returned' && !r.returnDate) return false;
+    if (statusF === 'lost' && !r.lost) return false;
+    return true;
+  });
+
+  const totalCount = rentals.length;
+  const activeCount = rentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays === 0).length;
+  const overdueCount = rentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0).length;
+  const returnedCount = rentals.filter(r => r.returnDate).length;
+  const lostCount = rentals.filter(r => r.lost).length;
+
+  document.getElementById('ownStatCards').innerHTML = [
+    ['Toplam Kayıt', totalCount, ''], ['Aktif Ödünçte', activeCount, 'accent-green'],
+    ['Gecikmiş', overdueCount, 'accent'], ['İade Edilen', returnedCount, ''], ['Kayıp', lostCount, 'accent']
+  ].map(([label, val, cls]) => `<div class="col-6 col-md-3"><div class="stat-card ${cls}"><div class="stat-value">${val}</div><div class="stat-label">${label}</div></div></div>`).join('');
+
+  document.getElementById('ownResultsTable').innerHTML = rentals.map(r => {
+    const user = data.users.find(u => u.id === r.userId) || { name: '—' };
+    const book = data.books.find(b => b.id === r.bookId) || { title: '—' };
+    const st = rentalStatus(r);
+    return `<tr><td>${escapeHtml(user.name)}</td><td>${escapeHtml(book.title)}</td><td>${formatDateTR(r.rentalDate)}</td><td>${formatDateTR(r.dueDate)}</td><td><span class="badge bg-${st.cls}">${st.label}</span></td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">Kayıt bulunamadı.</td></tr>';
+
+  // Grafik: kategoriye göre stok
+  const libBooks = data.books.filter(b => b.library === lib);
+  const catTotals = {};
+  libBooks.forEach(b => {
+    const cats = Array.isArray(b.category) ? b.category : [b.category];
+    cats.forEach(cid => {
+      const name = categoryName(cid) || 'Diğer';
+      catTotals[name] = (catTotals[name] || 0) + b.stock;
+    });
+  });
+  if (ownChartInstance) ownChartInstance.destroy();
+  ownChartInstance = new Chart(document.getElementById('ownChart'), {
+    type: 'bar',
+    data: { labels: Object.keys(catTotals), datasets: [{ label: 'Boşta Nüsha', data: Object.values(catTotals), backgroundColor: '#164194' }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  // Sıralı listeler (tüm kayıtlar üzerinden, filtre olmadan — kütüphane bazlı)
+  const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === lib; });
+  const bookCounts = {};
+  libRentals.forEach(r => { bookCounts[r.bookId] = (bookCounts[r.bookId] || 0) + 1; });
+  const bookRanking = Object.entries(bookCounts).map(([bid, cnt]) => ({ label: data.books.find(b => b.id === bid)?.title || '—', cnt })).sort((a, c) => c.cnt - a.cnt);
+
+  const userCounts = {};
+  libRentals.forEach(r => { userCounts[r.userId] = (userCounts[r.userId] || 0) + 1; });
+  const userRanking = Object.entries(userCounts).map(([uid, cnt]) => ({ label: data.users.find(u => u.id === uid)?.name || '—', cnt })).sort((a, c) => c.cnt - a.cnt);
+
+  const overdueCounts = {};
+  libRentals.forEach(r => { if (rentalStatus(r).overdueDays > 0) overdueCounts[r.userId] = (overdueCounts[r.userId] || 0) + 1; });
+  const overdueRanking = Object.entries(overdueCounts).map(([uid, cnt]) => ({ label: data.users.find(u => u.id === uid)?.name || '—', cnt })).sort((a, c) => c.cnt - a.cnt);
+
+  window.__rankings = { books: bookRanking, users: userRanking, overdue: overdueRanking };
+  renderRankingList('books', 'topBooksList');
+  renderRankingList('users', 'topUsersList');
+  renderRankingList('overdue', 'topOverdueList');
+}
+
+function renderRankingList(key, elId) {
+  const list = window.__rankings[key] || [];
+  const shown = expandState[key] ? list : list.slice(0, 10);
+  document.getElementById(elId).innerHTML = shown.map(item => `<li class="list-group-item d-flex justify-content-between"><span>${escapeHtml(item.label)}</span><span class="badge bg-navy">${item.cnt}</span></li>`).join('') || '<li class="list-group-item text-muted">Veri yok.</li>';
+}
+
+function toggleExpand(key) {
+  expandState[key] = !expandState[key];
+  const btnId = { books: 'toggleBooksBtn', users: 'toggleUsersBtn', overdue: 'toggleOverdueBtn' }[key];
+  const elId = { books: 'topBooksList', users: 'topUsersList', overdue: 'topOverdueList' }[key];
+  document.getElementById(btnId).textContent = expandState[key] ? 'Daralt' : 'Tümünü Göster';
+  renderRankingList(key, elId);
+}
+
+function renderCompareTab() {
+  const data = getData();
+  document.getElementById('compareTable').innerHTML = data.libraries.map(lib => {
+    const libBooks = data.books.filter(b => b.library === lib.id);
+    const titles = libBooks.length;
+    const total = libBooks.reduce((s, b) => s + b.total, 0);
+    const free = libBooks.reduce((s, b) => s + b.stock, 0);
+    const members = data.users.filter(u => u.library === lib.id).length;
+    const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === lib.id; });
+    const active = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays === 0).length;
+    const overdue = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0).length;
+    return `<tr><td>${escapeHtml(lib.name)}</td><td>${titles}</td><td>${total}</td><td>${free}</td><td>${members}</td><td>${active}</td><td class="text-danger">${overdue}</td></tr>`;
+  }).join('');
+
+  if (compareChartInstance) compareChartInstance.destroy();
+  compareChartInstance = new Chart(document.getElementById('compareChart'), {
+    type: 'bar',
+    data: {
+      labels: data.libraries.map(l => l.name),
+      datasets: [
+        { label: 'Toplam Nüsha', data: data.libraries.map(l => data.books.filter(b => b.library === l.id).reduce((s, b) => s + b.total, 0)), backgroundColor: '#164194' },
+        { label: 'Boşta Nüsha', data: data.libraries.map(l => data.books.filter(b => b.library === l.id).reduce((s, b) => s + b.stock, 0)), backgroundColor: '#3AAA35' }
+      ]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function renderAuditTab() {
+  const data = getData();
+  const start = document.getElementById('aStart').value;
+  const end = document.getElementById('aEnd').value;
+  const libF = document.getElementById('aLibrary').value;
+
+  let addedBooks = data.books.filter(b => {
+    if (libF && b.library !== libF) return false;
+    if (start && b.addedDate < start) return false;
+    if (end && b.addedDate > end) return false;
+    return true;
+  });
+  document.getElementById('auditAddedTable').innerHTML = addedBooks.map(b => `<tr><td>${escapeHtml(b.title)}</td><td>${escapeHtml(libraryName(b.library))}</td><td>${formatDateTR(b.addedDate)}</td><td>${escapeHtml(b.source)}</td></tr>`).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
+
+  let retirements = data.retirements.filter(r => {
+    if (libF && r.library !== libF) return false;
+    if (start && r.date < start) return false;
+    if (end && r.date > end) return false;
+    return true;
+  });
+  const statusLabel = { pending: '<span class="badge bg-orange">Onay Bekliyor</span>', approved: '<span class="badge bg-green">Onaylandı</span>', rejected: '<span class="badge bg-secondary">Reddedildi</span>' };
+  document.getElementById('auditRetireTable').innerHTML = retirements.map(r => `<tr><td>${escapeHtml(r.title)}</td><td>${escapeHtml(libraryName(r.library))}</td><td>${formatDateTR(r.date)}</td><td>${statusLabel[r.status] || ''}</td></tr>`).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
+}
+</script>
+</body>
+</html>

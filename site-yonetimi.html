@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Site Yönetimi - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için yetkiniz bulunmuyor. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <h2 class="section-title mb-3">Site Yönetimi</h2>
+
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link active" data-tab="content" onclick="switchSTab('content')">Site İçeriği</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="libraries" onclick="switchSTab('libraries')">Kütüphaneler</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="roles" onclick="switchSTab('roles')">Roller & Yetkiler</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="policies" onclick="switchSTab('policies')">Ödünç Kuralları</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="forms" onclick="switchSTab('forms')">Form Alanları</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="categories" onclick="switchSTab('categories')">Kategoriler</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="templates" onclick="switchSTab('templates')">İletişim Şablonları</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="notifsettings" onclick="switchSTab('notifsettings')">Bildirim Ayarları</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="userlogs" onclick="switchSTab('userlogs')">Kullanıcı Logları</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="notiflog" onclick="switchSTab('notiflog')">Bildirim Geçmişi</button></li>
+    </ul>
+
+    <!-- SİTE İÇERİĞİ -->
+    <div id="stab-content">
+      <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">Ana Sayfa Carousel</h6>
+        <div id="slideEditors"></div>
+      </div>
+      <div class="table-responsive-card">
+        <h6 class="text-navy">Etkinlik / Duyurular</h6>
+        <div id="eventsList" class="mb-3"></div>
+        <div class="row g-2">
+          <div class="col-md-4"><input type="text" id="evTitle" class="form-control form-control-sm" placeholder="Başlık"></div>
+          <div class="col-md-3"><input type="date" id="evDate" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><select id="evLibrary" class="form-select form-select-sm"></select></div>
+          <div class="col-md-2"><button class="btn btn-navy btn-sm w-100" onclick="addNewEvent()">Ekle</button></div>
+          <div class="col-12"><input type="text" id="evDesc" class="form-control form-control-sm mt-1" placeholder="Kısa açıklama"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KÜTÜPHANELER -->
+    <div id="stab-libraries" class="d-none">
+      <div class="table-responsive-card mb-3">
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Foto</th><th>Ad</th><th>Hafta İçi</th><th>Hafta Sonu</th><th>Adres</th><th>Telefon</th><th>Durum</th><th></th></tr></thead>
+            <tbody id="librariesTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card p-3">
+        <h6 class="text-navy" id="libFormTitle">Yeni Kütüphane Ekle</h6>
+        <div class="row g-2">
+          <div class="col-md-4"><input type="text" id="libName" class="form-control form-control-sm" placeholder="Kütüphane adı"></div>
+          <div class="col-md-4"><input type="text" id="libAddress" class="form-control form-control-sm" placeholder="Adres"></div>
+          <div class="col-md-2"><input type="text" id="libPhone" class="form-control form-control-sm" placeholder="Telefon"></div>
+          <div class="col-md-2">
+            <select id="libStatus" class="form-select form-select-sm">
+              <option value="active">Hizmette</option>
+              <option value="soon">Yakında Açılıyor</option>
+            </select>
+          </div>
+          <div class="col-md-4"><input type="text" id="libWeekday" class="form-control form-control-sm" placeholder="Hafta içi saatleri (örn. 08:00 - 17:00)"></div>
+          <div class="col-md-4"><input type="text" id="libWeekend" class="form-control form-control-sm" placeholder="Hafta sonu saatleri"></div>
+          <div class="col-md-8"><input type="text" id="libPhoto" class="form-control form-control-sm" placeholder="Fotoğraf URL (halka açık sitedeki kütüphane kartında görünür)"></div>
+          <div class="col-md-4 d-flex gap-2">
+            <button class="btn btn-navy btn-sm flex-fill" id="libSaveBtn" onclick="saveLibrary()">Kütüphane Ekle</button>
+            <button class="btn btn-secondary btn-sm d-none" id="libCancelBtn" onclick="cancelLibraryEdit()">Vazgeç</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLLER -->
+    <div id="stab-roles" class="d-none">
+      <div class="table-responsive-card mb-3">
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Rol</th><th>Yetkiler</th></tr></thead>
+            <tbody id="rolesTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card p-3">
+        <h6 class="text-navy">Yeni Rol Ekle</h6>
+        <div class="row g-2">
+          <div class="col-md-4"><input type="text" id="newRoleName" class="form-control form-control-sm" placeholder="Rol adı"></div>
+          <div class="col-md-8" id="newRolePerms"></div>
+        </div>
+        <button class="btn btn-navy btn-sm mt-2" onclick="addNewRole()">Rol Ekle</button>
+      </div>
+    </div>
+
+    <!-- ÖDÜNÇ KURALLARI -->
+    <div id="stab-policies" class="d-none">
+      <div class="table-responsive-card">
+        <h6 class="text-navy">Ödünç ve Üyelik Kuralları</h6>
+        <p class="small text-muted">Bu kurallar tüm kütüphaneler için geçerlidir.</p>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small">Üye başına maksimum aktif ödünç kitap sayısı</label>
+            <input type="number" id="policyMaxActiveRentals" class="form-control form-control-sm" min="1">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Kitap başına maksimum süre uzatma sayısı</label>
+            <input type="number" id="policyMaxRenewals" class="form-control form-control-sm" min="0">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Kaç ay işlemsiz kalan üyelik pasif sayılsın</label>
+            <input type="number" id="policyInactivityMonths" class="form-control form-control-sm" min="1">
+          </div>
+          <div class="col-12"><button class="btn btn-navy btn-sm" onclick="savePolicySettings()">Kuralları Kaydet</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORM ALANLARI -->
+    <div id="stab-forms" class="d-none">
+      <ul class="nav nav-pills mb-3">
+        <li class="nav-item"><button class="nav-link active" data-form="book" onclick="switchFormKey('book')">Kitap Formu</button></li>
+        <li class="nav-item"><button class="nav-link" data-form="member" onclick="switchFormKey('member')">Üye Formu</button></li>
+        <li class="nav-item"><button class="nav-link" data-form="staff" onclick="switchFormKey('staff')">Personel Formu</button></li>
+      </ul>
+      <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">Sabit Alanlar</h6>
+        <p class="small text-muted mb-2">Bu formda hâlihazırda bulunan alanlar. Alan tipini veya zorunluluğunu değiştiremezsiniz, sadece kullanıcıya görünen adını (etiketini) güncelleyebilirsiniz.</p>
+        <div id="coreFieldsList"></div>
+      </div>
+      <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">Ek Alanlar</h6>
+        <div id="formFieldsList"></div>
+      </div>
+      <div class="card p-3">
+        <h6 class="text-navy">Yeni Alan Ekle</h6>
+        <div class="row g-2">
+          <div class="col-md-3"><input type="text" id="newFieldLabel" class="form-control form-control-sm" placeholder="Alan adı"></div>
+          <div class="col-md-2">
+            <select id="newFieldType" class="form-select form-select-sm" onchange="toggleFieldOptions()">
+              <option value="text">Metin</option><option value="number">Sayı</option><option value="date">Tarih</option><option value="select">Açılır Liste</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-none" id="newFieldOptionsHolder"><input type="text" id="newFieldOptions" class="form-control form-control-sm" placeholder="Seçenekler (virgülle ayırın)"></div>
+          <div class="col-md-2 d-flex align-items-center">
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="newFieldRequired"><label class="form-check-label small" for="newFieldRequired">Zorunlu</label></div>
+          </div>
+          <div class="col-md-1"><button class="btn btn-navy btn-sm w-100" onclick="addNewField()">Ekle</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KATEGORİLER -->
+    <div id="stab-categories" class="d-none">
+      <div class="card p-3 mb-3">
+        <h6 class="text-navy">Seçim Modu</h6>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="catMode" id="catModeSingle" onchange="changeCategoryMode('single')">
+          <label class="form-check-label" for="catModeSingle">Tekli Seçim</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="catMode" id="catModeMulti" onchange="changeCategoryMode('multi')">
+          <label class="form-check-label" for="catModeMulti">Çoklu Seçim</label>
+        </div>
+      </div>
+      <div class="table-responsive-card mb-3">
+        <div id="categoriesList" class="d-flex flex-wrap gap-2"></div>
+      </div>
+      <div class="card p-3">
+        <div class="input-group input-group-sm">
+          <input type="text" id="newCategoryName" class="form-control" placeholder="Yeni kategori adı">
+          <button class="btn btn-navy" onclick="addNewCategory()">Ekle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- İLETİŞİM ŞABLONLARI -->
+    <div id="stab-templates" class="d-none">
+      <div class="alert alert-info small">Şablonlarda <code>{{ad}}</code>, <code>{{kitap}}</code>, <code>{{tarih}}</code> ve <code>{{kutuphane}}</code> yer tutucularını kullanabilirsiniz.</div>
+      <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">SMS Şablonları</h6>
+        <div id="smsTemplatesList"></div>
+      </div>
+      <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">E-posta Şablonları</h6>
+        <div id="emailTemplatesList"></div>
+      </div>
+      <div class="table-responsive-card">
+        <h6 class="text-navy">İmha Raporu Şablonu</h6>
+        <p class="small text-muted">Yıpranmış Kitaplar sayfasında yazdırılan imha tutanağının başlığını ve alt bilgisini buradan düzenleyebilirsiniz. Alt bilgide <code>{{tarih}}</code> yer tutucusunu kullanabilirsiniz.</p>
+        <div class="row g-2">
+          <div class="col-md-6"><label class="form-label small">Kurum Adı</label><input type="text" id="reportInstitutionName" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small">Rapor Başlığı</label><input type="text" id="reportTitle" class="form-control form-control-sm"></div>
+          <div class="col-12"><label class="form-label small">Alt Bilgi / İmza Metni (opsiyonel)</label><textarea id="reportFooterText" class="form-control form-control-sm" rows="2" placeholder="Örn. Bu tutanak {{tarih}} tarihinde düzenlenmiştir."></textarea></div>
+          <div class="col-12"><button class="btn btn-navy btn-sm" onclick="saveReportTemplate()">Rapor Şablonunu Kaydet</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BİLDİRİM AYARLARI -->
+    <div id="stab-notifsettings" class="d-none">
+      <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">E-posta (SMTP) Ayarları</h6>
+        <div class="row g-2">
+          <div class="col-md-6"><label class="form-label small">SMTP Sunucu</label><input type="text" id="smtpHost" class="form-control form-control-sm" placeholder="smtp.saglayici.com"></div>
+          <div class="col-md-2"><label class="form-label small">Port</label><input type="text" id="smtpPort" class="form-control form-control-sm" placeholder="587"></div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="smtpSecure">
+              <label class="form-check-label small" for="smtpSecure">SSL/TLS kullan</label>
+            </div>
+          </div>
+          <div class="col-md-6"><label class="form-label small">Kullanıcı Adı</label><input type="text" id="smtpUsername" class="form-control form-control-sm" placeholder="kullanici@ornek.com"></div>
+          <div class="col-md-6"><label class="form-label small">Şifre</label><input type="password" id="smtpPassword" class="form-control form-control-sm" placeholder="••••••••"></div>
+          <div class="col-md-6"><label class="form-label small">Gönderen Adı</label><input type="text" id="smtpFromName" class="form-control form-control-sm" placeholder="Yenişehir Belediyesi Kütüphaneleri"></div>
+          <div class="col-md-6"><label class="form-label small">Gönderen E-posta</label><input type="email" id="smtpFromEmail" class="form-control form-control-sm" placeholder="kutuphane@yenisehir.bel.tr"></div>
+          <div class="col-12"><button class="btn btn-navy btn-sm" onclick="saveSmtpSettings()">SMTP Ayarlarını Kaydet</button></div>
+        </div>
+      </div>
+      <div class="table-responsive-card">
+        <h6 class="text-navy">SMS Ayarları</h6>
+        <div class="row g-2">
+          <div class="col-md-4"><label class="form-label small">Sağlayıcı</label><input type="text" id="smsProvider" class="form-control form-control-sm" placeholder="Örn. Netgsm, İleti Merkezi"></div>
+          <div class="col-md-8"><label class="form-label small">API Adresi</label><input type="text" id="smsApiUrl" class="form-control form-control-sm" placeholder="https://api.saglayici.com/gonder"></div>
+          <div class="col-md-4"><label class="form-label small">API Anahtarı / Kullanıcı Adı</label><input type="text" id="smsApiKey" class="form-control form-control-sm"></div>
+          <div class="col-md-4"><label class="form-label small">API Şifresi</label><input type="password" id="smsApiSecret" class="form-control form-control-sm" placeholder="••••••••"></div>
+          <div class="col-md-4"><label class="form-label small">Gönderen Başlığı</label><input type="text" id="smsSender" class="form-control form-control-sm" placeholder="YENISEHIR"></div>
+          <div class="col-12"><button class="btn btn-navy btn-sm" onclick="saveSmsSettings()">SMS Ayarlarını Kaydet</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KULLANICI LOGLARI -->
+    <div id="stab-userlogs" class="d-none">
+      <div class="row g-2 mb-3">
+        <div class="col-md-3">
+          <select id="logActorFilter" class="form-select form-select-sm" onchange="renderUserLogs()">
+            <option value="">Tümü (Üye + Personel)</option>
+            <option value="staff">Sadece Personel</option>
+            <option value="member">Sadece Üyeler</option>
+          </select>
+        </div>
+        <div class="col-md-5">
+          <input type="text" id="logSearchInput" class="form-control form-control-sm" placeholder="Kullanıcı adı, işlem veya detay ara..." oninput="renderUserLogs()">
+        </div>
+      </div>
+      <div class="table-responsive-card">
+        <div class="table-responsive">
+          <table class="table align-middle table-sm">
+            <thead><tr><th>Tarih / Saat</th><th>Kullanıcı Tipi</th><th>Kullanıcı</th><th>İşlem</th><th>Detay</th></tr></thead>
+            <tbody id="userLogsTable"></tbody>
+          </table>
+        </div>
+        <p class="small text-muted mb-0" id="userLogsMore"></p>
+      </div>
+    </div>
+
+    <!-- BİLDİRİM GEÇMİŞİ -->
+    <div id="stab-notiflog" class="d-none">
+      <div class="row g-2 mb-3">
+        <div class="col-md-3">
+          <select id="notifChannelFilter" class="form-select form-select-sm" onchange="renderNotificationLog()">
+            <option value="">Tüm Kanallar</option>
+            <option value="sms">Sadece SMS</option>
+            <option value="email">Sadece E-posta</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="notifCategoryFilter" class="form-select form-select-sm" onchange="renderNotificationLog()">
+            <option value="">Tüm Kategoriler</option>
+          </select>
+        </div>
+        <div class="col-md-5">
+          <input type="text" id="notifSearchInput" class="form-control form-control-sm" placeholder="Telefon, e-posta veya içerik ara..." oninput="renderNotificationLog()">
+        </div>
+      </div>
+      <div class="table-responsive-card">
+        <div class="table-responsive">
+          <table class="table align-middle table-sm">
+            <thead><tr><th>Tarih / Saat</th><th>Kanal</th><th>Kategori</th><th>Alıcı</th><th>Konu</th><th>İçerik</th></tr></thead>
+            <tbody id="notifLogTable"></tbody>
+          </table>
+        </div>
+        <p class="small text-muted mb-0" id="notifLogMore"></p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+let activeFormKey = 'book';
+let editingLibraryId = null;
+
+(async () => {
+  if (await initAdminPage('site-yonetimi', { requireLogin: true, requirePermission: 'system_admin' })) boot();
+})();
+
+function boot() {
+  renderSlideEditors();
+  renderEvents();
+  renderLibrariesTab();
+  renderRolesTable();
+  renderNewRolePerms();
+  renderPolicySettingsTab();
+  renderCoreFieldsList();
+  renderFormFields();
+  renderCategoriesTab();
+  renderTemplatesTab();
+  renderNotificationSettingsTab();
+  renderUserLogs();
+  renderNotificationLog();
+  const data = getData();
+  document.getElementById('evLibrary').innerHTML = data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
+}
+
+function switchSTab(key) {
+  document.querySelectorAll('.nav-tabs .nav-link').forEach(el => el.classList.toggle('active', el.dataset.tab === key));
+  ['content', 'libraries', 'roles', 'policies', 'forms', 'categories', 'templates', 'notifsettings', 'userlogs', 'notiflog'].forEach(k => document.getElementById('stab-' + k).classList.toggle('d-none', k !== key));
+}
+
+/* ---------- Site İçeriği ---------- */
+
+function renderSlideEditors() {
+  const data = getData();
+  document.getElementById('slideEditors').innerHTML = data.sliderContent.sort((a, c) => a.order - c.order).map(s => `
+    <div class="row g-2 align-items-center border-bottom py-2">
+      <div class="col-md-2 small text-muted">${escapeHtml(libraryName(s.libraryId))}</div>
+      <div class="col-md-3"><input type="text" class="form-control form-control-sm" value="${escapeHtml(s.title)}" onchange="updateSlide('${s.id}', {title:this.value})"></div>
+      <div class="col-md-3"><input type="text" class="form-control form-control-sm" value="${escapeHtml(s.subtitle)}" onchange="updateSlide('${s.id}', {subtitle:this.value})"></div>
+      <div class="col-md-2"><input type="number" class="form-control form-control-sm" value="${s.order}" onchange="updateSlide('${s.id}', {order:Number(this.value)})"></div>
+      <div class="col-md-2">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" ${s.visible ? 'checked' : ''} onchange="updateSlide('${s.id}', {visible:this.checked}); renderSlideEditors();">
+          <label class="form-check-label small">Görünür</label>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderEvents() {
+  const data = getData();
+  document.getElementById('eventsList').innerHTML = data.events.map(e => `
+    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+      <div><strong>${escapeHtml(e.title)}</strong> <span class="small text-muted">— ${escapeHtml(libraryName(e.library))} · ${formatDateTR(e.date)}</span><div class="small text-muted">${escapeHtml(e.desc || '')}</div></div>
+      <button class="btn btn-sm btn-outline-danger" onclick="removeEvent('${e.id}')"><i class="bi bi-trash"></i></button>
+    </div>`).join('') || '<div class="text-muted small">Etkinlik yok.</div>';
+}
+
+async function addNewEvent() {
+  const title = document.getElementById('evTitle').value.trim();
+  const date = document.getElementById('evDate').value;
+  const library = document.getElementById('evLibrary').value;
+  const desc = document.getElementById('evDesc').value.trim();
+  if (!title || !date) { showToast('Başlık ve tarih zorunludur.', 'danger'); return; }
+  await addEvent({ title, date, library, desc });
+  document.getElementById('evTitle').value = '';
+  document.getElementById('evDesc').value = '';
+  renderEvents();
+  showToast('Etkinlik eklendi.', 'success');
+}
+async function removeEvent(id) { await deleteEvent(id); renderEvents(); }
+
+/* ---------- Roller & Yetkiler ---------- */
+
+function renderRolesTable() {
+  const data = getData();
+  document.getElementById('rolesTable').innerHTML = data.roles.map(r => `
+    <tr>
+      <td><strong>${escapeHtml(r.name)}</strong>${r.protected ? ' <span class="badge bg-navy">Sistem</span>' : ''}</td>
+      <td>
+        <div class="d-flex flex-wrap gap-3">
+          ${PERMISSIONS.map(p => `
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="perm_${r.id}_${p.id}" ${r.permissions.includes(p.id) ? 'checked' : ''} onchange="togglePermission('${r.id}','${p.id}',this.checked)">
+              <label class="form-check-label small" for="perm_${r.id}_${p.id}">${escapeHtml(p.label)}</label>
+            </div>`).join('')}
+          ${!r.protected ? `<button class="btn btn-sm btn-outline-danger" onclick="removeRole('${r.id}')">Rolü Sil</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function togglePermission(roleId, permId, checked) {
+  const data = getData();
+  const role = data.roles.find(r => r.id === roleId);
+  const perms = new Set(role.permissions);
+  checked ? perms.add(permId) : perms.delete(permId);
+  await updateRolePermissions(roleId, Array.from(perms));
+  showToast('Yetkiler güncellendi.', 'success');
+}
+
+async function removeRole(roleId) {
+  if (!confirm('Bu rolü silmek istediğinize emin misiniz?')) return;
+  const res = await deleteRole(roleId);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  renderRolesTable();
+  showToast('Rol silindi.', 'success');
+}
+
+function renderNewRolePerms() {
+  document.getElementById('newRolePerms').innerHTML = `<div class="d-flex flex-wrap gap-3">${PERMISSIONS.map(p => `
+    <div class="form-check">
+      <input class="form-check-input new-role-perm" type="checkbox" value="${p.id}" id="newperm_${p.id}">
+      <label class="form-check-label small" for="newperm_${p.id}">${escapeHtml(p.label)}</label>
+    </div>`).join('')}</div>`;
+}
+
+async function addNewRole() {
+  const name = document.getElementById('newRoleName').value.trim();
+  const perms = Array.from(document.querySelectorAll('.new-role-perm:checked')).map(el => el.value);
+  if (!name) { showToast('Rol adı zorunludur.', 'danger'); return; }
+  await addRole(name, perms);
+  document.getElementById('newRoleName').value = '';
+  document.querySelectorAll('.new-role-perm').forEach(el => el.checked = false);
+  renderRolesTable();
+  showToast('Rol eklendi.', 'success');
+}
+
+/* ---------- Ödünç Kuralları ---------- */
+
+function renderPolicySettingsTab() {
+  const policies = getPolicies();
+  document.getElementById('policyMaxActiveRentals').value = policies.maxActiveRentals;
+  document.getElementById('policyMaxRenewals').value = policies.maxRenewals;
+  document.getElementById('policyInactivityMonths').value = policies.inactivityMonths;
+}
+
+async function savePolicySettings() {
+  const maxActiveRentals = Number(document.getElementById('policyMaxActiveRentals').value);
+  const maxRenewals = Number(document.getElementById('policyMaxRenewals').value);
+  const inactivityMonths = Number(document.getElementById('policyInactivityMonths').value);
+  if (!maxActiveRentals || maxActiveRentals < 1 || maxRenewals < 0 || !inactivityMonths || inactivityMonths < 1) {
+    showToast('Lütfen geçerli değerler girin.', 'danger');
+    return;
+  }
+  await updateSettings('policies', { maxActiveRentals, maxRenewals, inactivityMonths });
+  showToast('Ödünç kuralları kaydedildi.', 'success');
+}
+
+/* ---------- Form Alanları ---------- */
+
+function switchFormKey(key) {
+  activeFormKey = key;
+  document.querySelectorAll('.nav-pills .nav-link').forEach(el => el.classList.toggle('active', el.dataset.form === key));
+  renderCoreFieldsList();
+  renderFormFields();
+}
+
+function renderCoreFieldsList() {
+  const core = CORE_FIELDS[activeFormKey] || [];
+  document.getElementById('coreFieldsList').innerHTML = core.map(f => `
+    <div class="row g-2 align-items-center border-bottom py-2">
+      <div class="col-md-3"><strong>${escapeHtml(f.label)}</strong>${f.required ? ' <span class="badge bg-navy">Zorunlu</span>' : ''}</div>
+      <div class="col-md-9">
+        <input type="text" class="form-control form-control-sm" value="${escapeHtml(getFieldLabel(activeFormKey, f.key) || f.label)}"
+          onchange="saveCoreFieldLabel('${f.key}', this.value)">
+      </div>
+    </div>`).join('') || '<div class="text-muted small">Bu form için sabit alan tanımlı değil.</div>';
+}
+
+async function saveCoreFieldLabel(key, value) {
+  await setFieldLabel(activeFormKey, key, value.trim());
+  showToast('Alan adı güncellendi.', 'success');
+}
+
+function renderFormFields() {
+  const data = getData();
+  const fields = data.formFields[activeFormKey] || [];
+  document.getElementById('formFieldsList').innerHTML = fields.map(f => `
+    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+      <div><strong>${escapeHtml(f.label)}</strong> <span class="small text-muted">(${f.type}${f.required ? ', zorunlu' : ''})</span>${f.options ? `<div class="small text-muted">Seçenekler: ${f.options.map(escapeHtml).join(', ')}</div>` : ''}</div>
+      <button class="btn btn-sm btn-outline-danger" onclick="removeField('${f.id}')"><i class="bi bi-trash"></i></button>
+    </div>`).join('') || '<div class="text-muted small">Bu form için ek alan tanımlanmamış.</div>';
+}
+
+function toggleFieldOptions() {
+  document.getElementById('newFieldOptionsHolder').classList.toggle('d-none', document.getElementById('newFieldType').value !== 'select');
+}
+
+async function addNewField() {
+  const label = document.getElementById('newFieldLabel').value.trim();
+  const type = document.getElementById('newFieldType').value;
+  const required = document.getElementById('newFieldRequired').checked;
+  if (!label) { showToast('Alan adı zorunludur.', 'danger'); return; }
+  const field = { label, type, required };
+  if (type === 'select') {
+    field.options = document.getElementById('newFieldOptions').value.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  await addFormField(activeFormKey, field);
+  document.getElementById('newFieldLabel').value = '';
+  document.getElementById('newFieldOptions').value = '';
+  renderFormFields();
+  showToast('Alan eklendi.', 'success');
+}
+
+async function removeField(id) {
+  await deleteFormField(activeFormKey, id);
+  renderFormFields();
+}
+
+/* ---------- Kategoriler ---------- */
+
+function renderCategoriesTab() {
+  const data = getData();
+  document.getElementById('catModeSingle').checked = data.categoryMode === 'single';
+  document.getElementById('catModeMulti').checked = data.categoryMode === 'multi';
+  document.getElementById('categoriesList').innerHTML = data.categories.map(c => `
+    <span class="badge bg-soft-navy text-navy border p-2">${escapeHtml(c.name)}
+      <button class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="removeCategory('${c.id}')"><i class="bi bi-x"></i></button>
+    </span>`).join('');
+}
+
+async function changeCategoryMode(mode) {
+  await setCategoryMode(mode);
+  showToast('Kategori seçim modu güncellendi.', 'success');
+}
+
+async function addNewCategory() {
+  const name = document.getElementById('newCategoryName').value.trim();
+  if (!name) return;
+  if (!(await addCategory(name))) { showToast('Bu kategori zaten mevcut.', 'danger'); return; }
+  document.getElementById('newCategoryName').value = '';
+  renderCategoriesTab();
+  showToast('Kategori eklendi.', 'success');
+}
+
+async function removeCategory(id) {
+  await deleteCategory(id);
+  renderCategoriesTab();
+}
+
+/* ---------- Kütüphaneler ---------- */
+
+function renderLibrariesTab() {
+  const data = getData();
+  document.getElementById('librariesTable').innerHTML = data.libraries.map(l => `
+    <tr>
+      <td>${l.photoUrl ? `<img src="${escapeHtml(l.photoUrl)}" alt="${escapeHtml(l.name)}" style="width:56px;height:40px;object-fit:cover;border-radius:4px;">` : '<span class="text-muted small">—</span>'}</td>
+      <td>${escapeHtml(l.name)}</td>
+      <td>${escapeHtml(l.weekday || '—')}</td>
+      <td>${escapeHtml(l.weekend || '—')}</td>
+      <td>${escapeHtml(l.address || '—')}</td>
+      <td>${escapeHtml(l.phone || '—')}</td>
+      <td>${l.status === 'soon' ? '<span class="badge bg-orange">Yakında</span>' : '<span class="badge bg-green">Hizmette</span>'}</td>
+      <td class="text-end"><button class="btn btn-sm btn-outline-secondary" onclick="editLibrary('${l.id}')"><i class="bi bi-pencil"></i> Düzenle</button></td>
+    </tr>`).join('') || '<tr><td colspan="8" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
+}
+
+function editLibrary(id) {
+  const data = getData();
+  const lib = data.libraries.find(l => l.id === id);
+  if (!lib) return;
+  editingLibraryId = id;
+  document.getElementById('libFormTitle').textContent = 'Kütüphane Düzenle: ' + lib.name;
+  document.getElementById('libName').value = lib.name;
+  document.getElementById('libAddress').value = lib.address || '';
+  document.getElementById('libPhone').value = lib.phone || '';
+  document.getElementById('libStatus').value = lib.status || 'active';
+  document.getElementById('libWeekday').value = lib.weekday || '';
+  document.getElementById('libWeekend').value = lib.weekend || '';
+  document.getElementById('libPhoto').value = lib.photoUrl || '';
+  document.getElementById('libSaveBtn').textContent = 'Güncelle';
+  document.getElementById('libCancelBtn').classList.remove('d-none');
+}
+
+function cancelLibraryEdit() {
+  editingLibraryId = null;
+  document.getElementById('libFormTitle').textContent = 'Yeni Kütüphane Ekle';
+  document.getElementById('libName').value = '';
+  document.getElementById('libAddress').value = '';
+  document.getElementById('libPhone').value = '';
+  document.getElementById('libStatus').value = 'active';
+  document.getElementById('libWeekday').value = '';
+  document.getElementById('libWeekend').value = '';
+  document.getElementById('libPhoto').value = '';
+  document.getElementById('libSaveBtn').textContent = 'Kütüphane Ekle';
+  document.getElementById('libCancelBtn').classList.add('d-none');
+}
+
+async function saveLibrary() {
+  const name = document.getElementById('libName').value.trim();
+  if (!name) { showToast('Kütüphane adı zorunludur.', 'danger'); return; }
+  const payload = {
+    name,
+    address: document.getElementById('libAddress').value.trim(),
+    phone: document.getElementById('libPhone').value.trim(),
+    status: document.getElementById('libStatus').value,
+    weekday: document.getElementById('libWeekday').value.trim(),
+    weekend: document.getElementById('libWeekend').value.trim(),
+    photoUrl: document.getElementById('libPhoto').value.trim()
+  };
+  const res = editingLibraryId ? await updateLibrary(editingLibraryId, payload) : await addLibrary(payload);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast(editingLibraryId ? 'Kütüphane güncellendi.' : 'Kütüphane eklendi.', 'success');
+  cancelLibraryEdit();
+  renderLibrariesTab();
+  const data = getData();
+  document.getElementById('evLibrary').innerHTML = data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
+}
+
+/* ---------- İletişim Şablonları ---------- */
+
+function renderTemplatesTab() {
+  const data = getData();
+  document.getElementById('smsTemplatesList').innerHTML = (data.smsTemplates || []).map(t => `
+    <div class="border-bottom py-2">
+      <label class="form-label small fw-bold">${escapeHtml(t.label)}</label>
+      <textarea class="form-control form-control-sm" rows="2" id="sms_${t.id}">${escapeHtml(t.text)}</textarea>
+      <button class="btn btn-sm btn-outline-navy mt-1" onclick="saveSmsTemplate('${t.id}')">Kaydet</button>
+    </div>`).join('');
+
+  document.getElementById('emailTemplatesList').innerHTML = (data.emailTemplates || []).map(t => `
+    <div class="border-bottom py-2">
+      <label class="form-label small fw-bold">${escapeHtml(t.label)}</label>
+      <input type="text" class="form-control form-control-sm mb-1" id="mailsubj_${t.id}" value="${escapeHtml(t.subject)}" placeholder="Konu">
+      <textarea class="form-control form-control-sm" rows="3" id="mailbody_${t.id}">${escapeHtml(t.body)}</textarea>
+      <button class="btn btn-sm btn-outline-navy mt-1" onclick="saveEmailTemplate('${t.id}')">Kaydet</button>
+    </div>`).join('');
+
+  const report = (data.settings && data.settings.reportTemplate) || {};
+  document.getElementById('reportInstitutionName').value = report.institutionName || '';
+  document.getElementById('reportTitle').value = report.title || '';
+  document.getElementById('reportFooterText').value = report.footerText || '';
+}
+
+async function saveReportTemplate() {
+  await updateSettings('reportTemplate', {
+    institutionName: document.getElementById('reportInstitutionName').value.trim(),
+    title: document.getElementById('reportTitle').value.trim(),
+    footerText: document.getElementById('reportFooterText').value.trim()
+  });
+  showToast('Rapor şablonu kaydedildi.', 'success');
+}
+
+async function saveSmsTemplate(id) {
+  const text = document.getElementById('sms_' + id).value;
+  await updateSmsTemplate(id, { text });
+  showToast('SMS şablonu güncellendi.', 'success');
+}
+
+async function saveEmailTemplate(id) {
+  const subject = document.getElementById('mailsubj_' + id).value;
+  const body = document.getElementById('mailbody_' + id).value;
+  await updateEmailTemplate(id, { subject, body });
+  showToast('E-posta şablonu güncellendi.', 'success');
+}
+
+/* ---------- Bildirim Ayarları ---------- */
+
+function renderNotificationSettingsTab() {
+  const settings = getData().settings || {};
+  const smtp = settings.smtp || {};
+  const sms = settings.sms || {};
+  document.getElementById('smtpHost').value = smtp.host || '';
+  document.getElementById('smtpPort').value = smtp.port || '';
+  document.getElementById('smtpSecure').checked = smtp.secure !== false;
+  document.getElementById('smtpUsername').value = smtp.username || '';
+  document.getElementById('smtpPassword').value = smtp.password || '';
+  document.getElementById('smtpFromName').value = smtp.fromName || '';
+  document.getElementById('smtpFromEmail').value = smtp.fromEmail || '';
+  document.getElementById('smsProvider').value = sms.provider || '';
+  document.getElementById('smsApiUrl').value = sms.apiUrl || '';
+  document.getElementById('smsApiKey').value = sms.apiKey || '';
+  document.getElementById('smsApiSecret').value = sms.apiSecret || '';
+  document.getElementById('smsSender').value = sms.sender || '';
+}
+
+async function saveSmtpSettings() {
+  await updateSettings('smtp', {
+    host: document.getElementById('smtpHost').value.trim(),
+    port: document.getElementById('smtpPort').value.trim(),
+    secure: document.getElementById('smtpSecure').checked,
+    username: document.getElementById('smtpUsername').value.trim(),
+    password: document.getElementById('smtpPassword').value,
+    fromName: document.getElementById('smtpFromName').value.trim(),
+    fromEmail: document.getElementById('smtpFromEmail').value.trim()
+  });
+  showToast('SMTP ayarları kaydedildi.', 'success');
+}
+
+async function saveSmsSettings() {
+  await updateSettings('sms', {
+    provider: document.getElementById('smsProvider').value.trim(),
+    apiUrl: document.getElementById('smsApiUrl').value.trim(),
+    apiKey: document.getElementById('smsApiKey').value.trim(),
+    apiSecret: document.getElementById('smsApiSecret').value,
+    sender: document.getElementById('smsSender').value.trim()
+  });
+  showToast('SMS ayarları kaydedildi.', 'success');
+}
+
+/* ---------- Kullanıcı Logları ---------- */
+
+const USER_LOGS_LIMIT = 300;
+
+function renderUserLogs() {
+  const data = getData();
+  const actorFilter = document.getElementById('logActorFilter').value;
+  const q = (document.getElementById('logSearchInput').value || '').toLowerCase().trim();
+  let logs = data.activityLogs || [];
+  if (actorFilter) logs = logs.filter(l => l.actorType === actorFilter);
+  if (q) {
+    logs = logs.filter(l =>
+      l.actorName.toLowerCase().includes(q) ||
+      l.action.toLowerCase().includes(q) ||
+      (l.detail || '').toLowerCase().includes(q));
+  }
+  const total = logs.length;
+  logs = logs.slice(0, USER_LOGS_LIMIT);
+
+  const typeLabel = { staff: '<span class="badge bg-navy">Personel</span>', member: '<span class="badge bg-orange">Üye</span>' };
+  document.getElementById('userLogsTable').innerHTML = logs.map(l => `
+    <tr>
+      <td class="small">${formatDateTR(l.date)} ${new Date(l.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</td>
+      <td>${typeLabel[l.actorType] || l.actorType}</td>
+      <td>${escapeHtml(l.actorName)}</td>
+      <td><strong>${escapeHtml(l.action)}</strong></td>
+      <td class="small">${escapeHtml(l.detail)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">Kayıt bulunamadı.</td></tr>';
+
+  document.getElementById('userLogsMore').textContent = total > USER_LOGS_LIMIT
+    ? `Son ${USER_LOGS_LIMIT} kayıt gösteriliyor (toplam ${total}).` : '';
+}
+
+/* ---------- Bildirim Geçmişi ---------- */
+
+const NOTIF_LOG_LIMIT = 300;
+
+function renderNotificationLog() {
+  const data = getData();
+  const list = data.notificationLog || [];
+
+  const catSelect = document.getElementById('notifCategoryFilter');
+  const categories = Array.from(new Set(list.map(n => n.category))).sort();
+  const prevVal = catSelect.value;
+  catSelect.innerHTML = '<option value="">Tüm Kategoriler</option>' + categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  catSelect.value = categories.includes(prevVal) ? prevVal : '';
+
+  const channelFilter = document.getElementById('notifChannelFilter').value;
+  const categoryFilter = catSelect.value;
+  const q = (document.getElementById('notifSearchInput').value || '').toLowerCase().trim();
+
+  let logs = list;
+  if (channelFilter) logs = logs.filter(n => n.channel === channelFilter);
+  if (categoryFilter) logs = logs.filter(n => n.category === categoryFilter);
+  if (q) {
+    logs = logs.filter(n =>
+      n.to.toLowerCase().includes(q) ||
+      (n.subject || '').toLowerCase().includes(q) ||
+      (n.body || '').toLowerCase().includes(q));
+  }
+  const total = logs.length;
+  logs = logs.slice(0, NOTIF_LOG_LIMIT);
+
+  const channelLabel = { sms: '<span class="badge bg-green">SMS</span>', email: '<span class="badge bg-navy">E-posta</span>' };
+  document.getElementById('notifLogTable').innerHTML = logs.map(n => `
+    <tr>
+      <td class="small">${formatDateTR(n.date)} ${new Date(n.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</td>
+      <td>${channelLabel[n.channel] || n.channel}</td>
+      <td class="small">${escapeHtml(n.category)}</td>
+      <td class="small">${escapeHtml(n.to)}</td>
+      <td class="small">${escapeHtml(n.subject || '—')}</td>
+      <td class="small" style="white-space:pre-wrap;">${escapeHtml(n.body)}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Kayıt bulunamadı.</td></tr>';
+
+  document.getElementById('notifLogMore').textContent = total > NOTIF_LOG_LIMIT
+    ? `Son ${NOTIF_LOG_LIMIT} kayıt gösteriliyor (toplam ${total}).` : '';
+}
+
+</script>
+</body>
+</html>

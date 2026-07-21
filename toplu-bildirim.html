@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toplu Bildirim - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için yetkiniz bulunmuyor. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <h2 class="section-title mb-3">Toplu Bildirim</h2>
+
+    <div class="card p-3 mb-3">
+      <h6 class="text-navy">Toplu Bildirim Oluştur</h6>
+      <p class="small text-muted">Tüm kütüphane üyelerine veya seçtiğiniz bir kütüphanenin üyelerine e-posta ve/veya SMS ile toplu bildirim gönderin (örn. yeni kütüphane açılışı).</p>
+      <div class="row g-2">
+        <div class="col-md-8"><input type="text" id="mailSubject" class="form-control form-control-sm" placeholder="Konu"></div>
+        <div class="col-md-4">
+          <select id="mailLibrary" class="form-select form-select-sm">
+            <option value="all">Tüm Kütüphaneler / Tüm Üyeler</option>
+          </select>
+        </div>
+        <div class="col-12 d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="notifyChannelEmail" checked>
+            <label class="form-check-label small" for="notifyChannelEmail">E-posta ile gönder</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="notifyChannelSms">
+            <label class="form-check-label small" for="notifyChannelSms">SMS ile gönder</label>
+          </div>
+        </div>
+        <div class="col-12"><textarea id="mailBody" class="form-control form-control-sm" rows="6" placeholder="Mesajınızı yazın..."></textarea></div>
+        <div class="col-12"><button class="btn btn-orange btn-sm" onclick="sendMailBroadcast()"><i class="bi bi-send"></i> Gönder</button></div>
+      </div>
+    </div>
+    <div class="table-responsive-card">
+      <h6 class="text-navy">Gönderim Geçmişi</h6>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Tarih</th><th>Konu</th><th>Kütüphane</th><th>Kanal</th><th>Alıcı Sayısı</th></tr></thead>
+          <tbody id="mailHistoryTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  if (await initAdminPage('toplu-bildirim', { requireLogin: true, requirePermission: 'send_notifications' })) boot();
+})();
+
+function boot() {
+  const data = getData();
+  document.getElementById('mailLibrary').innerHTML = '<option value="all">Tüm Kütüphaneler / Tüm Üyeler</option>' +
+    data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)} üyeleri</option>`).join('');
+  renderMailHistory();
+}
+
+function renderMailHistory() {
+  const data = getData();
+  const list = data.broadcasts || [];
+  const channelLabel = ch => ({ email: 'E-posta', sms: 'SMS' }[ch] || ch);
+  document.getElementById('mailHistoryTable').innerHTML = list.map(b => {
+    const counts = [];
+    if (b.channels.includes('email')) counts.push(`${b.emailRecipientCount} e-posta`);
+    if (b.channels.includes('sms')) counts.push(`${b.smsRecipientCount} SMS`);
+    return `<tr>
+      <td>${formatDateTR(b.date)}</td>
+      <td>${escapeHtml(b.subject)}</td>
+      <td>${b.library === 'all' ? 'Tümü' : escapeHtml(libraryName(b.library))}</td>
+      <td>${b.channels.map(channelLabel).join(' + ')}</td>
+      <td>${counts.join(', ')}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">Henüz gönderim yapılmadı.</td></tr>';
+}
+
+async function sendMailBroadcast() {
+  const subject = document.getElementById('mailSubject').value.trim();
+  const body = document.getElementById('mailBody').value.trim();
+  const library = document.getElementById('mailLibrary').value;
+  const channels = {
+    email: document.getElementById('notifyChannelEmail').checked,
+    sms: document.getElementById('notifyChannelSms').checked
+  };
+  if (!subject || !body) { showToast('Konu ve mesaj zorunludur.', 'danger'); return; }
+  if (!channels.email && !channels.sms) { showToast('En az bir bildirim kanalı seçmelisiniz.', 'danger'); return; }
+  const data = getData();
+  let recipients = data.users;
+  if (library !== 'all') recipients = recipients.filter(u => u.library === library);
+  const hasReachableRecipient = (channels.email && recipients.some(u => u.email)) || (channels.sms && recipients.some(u => u.phone));
+  if (!hasReachableRecipient) { showToast('Bu seçimde ulaşılabilir üye bulunamadı.', 'danger'); return; }
+  const res = await sendBroadcast(subject, body, { library, channels });
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  document.getElementById('mailSubject').value = '';
+  document.getElementById('mailBody').value = '';
+  renderMailHistory();
+  showToast('Toplu bildirim gönderildi.', 'success');
+}
+</script>
+</body>
+</html>

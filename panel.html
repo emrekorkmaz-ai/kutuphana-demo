@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yönetim Paneli - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+
+  <div class="mb-4">
+    <h2 class="section-title">Yönetim Paneli</h2>
+    <p class="text-muted">Mersin Yenişehir Belediyesi Kütüphane Takip Sistemi genel bakış ekranı.</p>
+  </div>
+
+  <div class="row g-3 mb-4" id="statCards"></div>
+
+  <div class="row g-3 mb-4" id="moduleCards"></div>
+
+  <div class="table-responsive-card mb-4">
+    <h5 class="text-navy mb-3">Kütüphanelere Göre Dağılım</h5>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Kütüphane</th>
+            <th>Kitap Türü</th>
+            <th>Toplam Nüsha</th>
+            <th>Boşta Nüsha</th>
+            <th>Üye Sayısı</th>
+          </tr>
+        </thead>
+        <tbody id="libraryDistTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="table-responsive-card">
+    <h5 class="text-navy mb-3">Son Hareketler</h5>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Tarih</th><th>Kitap</th><th>İşlem</th><th>Not</th></tr></thead>
+        <tbody id="recentMovesTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  if (!(await initAdminPage('index', { requireLogin: true }))) return;
+  boot();
+})();
+
+function boot() {
+const data = getData();
+
+// ---- Özet kartları ----
+const totalTitles = data.books.length;
+const totalCopies = data.books.reduce((s, b) => s + b.total, 0);
+const freeCopies = data.books.reduce((s, b) => s + b.stock, 0);
+const totalMembers = data.users.length;
+const overdueCount = data.rentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0).length;
+const dueTodayCount = data.rentals.filter(r => !r.returnDate && !r.lost && r.dueDate === todayStr()).length;
+const lowStockCount = data.books.filter(b => b.stock > 0 && b.stock <= 1).length;
+const retiredTotal = data.books.reduce((s, b) => s + (b.retiredCount || 0), 0);
+
+const stats = [
+  { label: 'Kitap Türü', value: totalTitles, accent: '' },
+  { label: 'Toplam Nüsha', value: totalCopies, accent: '' },
+  { label: 'Boşta Nüsha', value: freeCopies, accent: 'accent-green' },
+  { label: 'Toplam Üye', value: totalMembers, accent: '' },
+  { label: 'Geciken Ödünçler', value: overdueCount, accent: 'accent' },
+  { label: 'Bugünkü Hatırlatma', value: dueTodayCount, accent: 'accent' },
+  { label: 'Az Stokta Kitap', value: lowStockCount, accent: 'accent' },
+  { label: 'Toplam İmha Adedi', value: retiredTotal, accent: '' }
+];
+document.getElementById('statCards').innerHTML = stats.map(s => `
+  <div class="col-6 col-md-3">
+    <div class="stat-card ${s.accent}">
+      <div class="stat-value">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  </div>`).join('');
+
+// ---- Modül kısayolları ----
+const modules = [
+  { href: 'kitaplar.html', icon: 'bi-book', title: 'Kitaplar', desc: 'Kayıt, arama ve geçmiş.' },
+  { href: 'uyeler.html', icon: 'bi-people', title: 'Üyeler', desc: 'Üye listesi ve kayıt.' },
+  { href: 'kiralama.html', icon: 'bi-arrow-left-right', title: 'Ödünç İşlemleri', desc: 'Ödünç verme / iade.' },
+  { href: 'rapor.html', icon: 'bi-bar-chart', title: 'Rapor', desc: 'Filtreli ödünç raporları.' },
+  { href: 'imha.html', icon: 'bi-recycle', title: 'Yıpranmış Kitaplar', desc: 'İmha talebi ve onayı.' },
+  { href: 'talepler.html', icon: 'bi-inbox', title: 'Talepler', desc: 'Üye talepleri.' },
+  { href: 'personel.html', icon: 'bi-person-badge', title: 'Personel & Roller', desc: 'Personel yönetimi.' }
+];
+document.getElementById('moduleCards').innerHTML = modules.map(m => `
+  <div class="col-6 col-md-4 col-lg-3">
+    <a href="${m.href}" class="module-card d-block text-decoration-none">
+      <i class="bi ${m.icon} fs-3 text-orange"></i>
+      <h6 class="text-navy mt-2 mb-1">${m.title}</h6>
+      <div class="small text-muted">${m.desc}</div>
+    </a>
+  </div>`).join('');
+
+// ---- Kütüphane dağılımı ----
+document.getElementById('libraryDistTable').innerHTML = data.libraries.map(lib => {
+  const libBooks = data.books.filter(b => b.library === lib.id);
+  const titles = libBooks.length;
+  const total = libBooks.reduce((s, b) => s + b.total, 0);
+  const free = libBooks.reduce((s, b) => s + b.stock, 0);
+  const members = data.users.filter(u => u.library === lib.id).length;
+  const badge = lib.status === 'soon' ? '<span class="badge bg-orange ms-2">Yakında</span>' : '';
+  return `<tr>
+    <td>${escapeHtml(lib.name)}${badge}</td>
+    <td>${titles}</td>
+    <td>${total}</td>
+    <td>${free}</td>
+    <td>${members}</td>
+  </tr>`;
+}).join('');
+
+// ---- Son hareketler ----
+const allLogs = [];
+data.books.forEach(b => (b.logs || []).forEach(l => allLogs.push({ ...l, bookTitle: b.title })));
+allLogs.sort((a, c) => new Date(c.date) - new Date(a.date));
+const badgeCls = { 'Kayıt': 'bg-navy', 'Ödünç': 'bg-orange', 'İade': 'bg-green', 'İmha': 'bg-danger', 'Güncelleme': 'bg-secondary' };
+document.getElementById('recentMovesTable').innerHTML = allLogs.slice(0, 10).map(l => `
+  <tr>
+    <td>${formatDateTR(l.date)}</td>
+    <td>${escapeHtml(l.bookTitle)}</td>
+    <td><span class="badge ${badgeCls[l.type] || 'bg-secondary'}">${escapeHtml(l.type)}</span></td>
+    <td class="small text-muted">${escapeHtml(l.note)}</td>
+  </tr>`).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Henüz hareket yok.</td></tr>';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Üyeler - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="app-navbar"></div>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için personel girişi yapmalısınız. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <h2 class="section-title">Üyeler</h2>
+      <button class="btn btn-navy" data-bs-toggle="modal" data-bs-target="#addMemberModal" onclick="openAddMemberModal()"><i class="bi bi-plus-lg"></i> Üye Ekle</button>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <input type="text" id="searchInput" class="form-control" placeholder="İsim veya telefona göre ara...">
+    </div>
+
+    <div class="table-responsive-card">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>İsim</th><th>Telefon</th><th>E-posta</th><th>Kütüphane</th><th>Kayıt Tarihi</th>
+              <th>SMS Doğrulama</th><th>Aktif Ödünç</th><th>Üyelik Durumu</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy" id="memberModalTitle">Üye Ekle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning small d-none" id="mAddNote">Yeni üye hesabı oluşturulduğunda güvenlik nedeniyle sizin oturumunuz kapanacak ve tekrar giriş yapmanız istenecektir.</div>
+        <div class="row">
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="member.name">İsim Soyisim *</label><input type="text" id="mName" class="form-control"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="member.phone">Telefon *</label><input type="text" id="mPhone" class="form-control" placeholder="05XXXXXXXXX"></div>
+          <div class="col-md-6 mb-3" id="mPasswordHolder"><label class="form-label">Şifre * <span class="text-muted small">(üye ilk girişte kullanacak)</span></label><input type="text" id="mPassword" class="form-control" placeholder="En az 6 karakter"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="member.email">E-posta</label><input type="email" id="mEmail" class="form-control" placeholder="ornek@eposta.com"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="member.birthDate">Doğum Tarihi</label><input type="date" id="mBirth" class="form-control"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="member.nationalId">T.C. Kimlik No</label><input type="text" id="mNational" maxlength="11" class="form-control" placeholder="11 haneli"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="member.library">Kütüphane *</label><select id="mLibrary" class="form-select"></select></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="member.address">Adres</label><input type="text" id="mAddress" class="form-control"></div>
+          <div class="col-12" id="extraFieldsHolder"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-navy" id="memberSaveBtn" onclick="saveNewMember()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  if (await initAdminPage('uyeler', { requireLogin: true })) boot();
+})();
+
+function boot() {
+  applyCoreFieldLabels();
+  const data = getData();
+  document.getElementById('mLibrary').innerHTML = data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}${l.status === 'soon' ? ' (Yakında)' : ''}</option>`).join('');
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('member', {}) + '</div>';
+  renderTable();
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+}
+
+function renderTable() {
+  const data = getData();
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  let users = data.users;
+  if (q) users = users.filter(u => u.name.toLowerCase().includes(q) || u.phone.includes(q));
+
+  document.getElementById('usersTable').innerHTML = users.map(u => {
+    const activeCount = data.rentals.filter(r => r.userId === u.id && !r.returnDate && !r.lost).length;
+    const inactive = isMemberInactive(u);
+    return `<tr>
+      <td>${escapeHtml(u.name)}</td>
+      <td>${escapeHtml(u.phone)}</td>
+      <td>${u.email ? escapeHtml(u.email) : '<span class="text-muted">—</span>'}</td>
+      <td>${escapeHtml(libraryName(u.library))}</td>
+      <td>${formatDateTR(u.addedDate)}</td>
+      <td>${u.smsVerified ? '<span class="badge bg-green">Doğrulandı</span>' : '<span class="badge bg-secondary">Doğrulanmadı</span>'}</td>
+      <td>${activeCount}</td>
+      <td>${inactive ? '<span class="badge bg-secondary">Pasif</span>' : '<span class="badge bg-green">Aktif</span>'}</td>
+      <td class="text-end"><button class="btn btn-sm btn-outline-secondary" onclick="openEditMemberModal('${u.id}')"><i class="bi bi-pencil"></i> Düzenle</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="text-center text-muted py-4">Kayıt bulunamadı.</td></tr>';
+}
+
+let editingMemberId = null;
+
+function openAddMemberModal() {
+  editingMemberId = null;
+  document.getElementById('memberModalTitle').textContent = 'Üye Ekle';
+  document.getElementById('memberSaveBtn').textContent = 'Kaydet';
+  document.getElementById('mAddNote').classList.remove('d-none');
+  document.getElementById('mPasswordHolder').classList.remove('d-none');
+  document.getElementById('mName').value = '';
+  document.getElementById('mPhone').value = '';
+  document.getElementById('mPassword').value = '';
+  document.getElementById('mEmail').value = '';
+  document.getElementById('mNational').value = '';
+  document.getElementById('mAddress').value = '';
+  document.getElementById('mBirth').value = '';
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('member', {}) + '</div>';
+}
+
+function openEditMemberModal(id) {
+  const data = getData();
+  const user = data.users.find(u => u.id === id);
+  if (!user) return;
+  editingMemberId = id;
+  document.getElementById('memberModalTitle').textContent = 'Üye Düzenle';
+  document.getElementById('memberSaveBtn').textContent = 'Güncelle';
+  document.getElementById('mAddNote').classList.add('d-none');
+  document.getElementById('mPasswordHolder').classList.add('d-none');
+  document.getElementById('mName').value = user.name;
+  document.getElementById('mPhone').value = user.phone;
+  document.getElementById('mEmail').value = user.email || '';
+  document.getElementById('mNational').value = user.nationalId || '';
+  document.getElementById('mAddress').value = user.address || '';
+  document.getElementById('mBirth').value = user.birthDate || '';
+  document.getElementById('mLibrary').value = user.library;
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('member', user.extra || {}) + '</div>';
+  new bootstrap.Modal(document.getElementById('addMemberModal')).show();
+}
+
+async function saveNewMember() {
+  const name = document.getElementById('mName').value.trim();
+  const phone = document.getElementById('mPhone').value.trim();
+  const email = document.getElementById('mEmail').value.trim();
+  const library = document.getElementById('mLibrary').value;
+  const nationalId = document.getElementById('mNational').value.trim();
+
+  if (!name || !phone) { showToast('İsim ve telefon zorunludur.', 'danger'); return; }
+  if (nationalId && !/^\d{11}$/.test(nationalId)) { showToast('T.C. Kimlik No 11 haneli olmalıdır.', 'danger'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Geçerli bir e-posta adresi girin.', 'danger'); return; }
+
+  const payload = {
+    name, phone: normalizeTrPhone(phone), email, library,
+    address: document.getElementById('mAddress').value.trim(),
+    birthDate: document.getElementById('mBirth').value,
+    nationalId,
+    extra: collectExtraFields(document.getElementById('extraFieldsHolder'))
+  };
+
+  const saveBtn = document.getElementById('memberSaveBtn');
+  saveBtn.disabled = true;
+  let res;
+  if (editingMemberId) {
+    res = await updateMember(editingMemberId, payload);
+  } else {
+    const password = document.getElementById('mPassword').value;
+    if (!password || password.length < 6) { showToast('Şifre en az 6 karakter olmalıdır.', 'danger'); saveBtn.disabled = false; return; }
+    payload.password = password;
+    res = await addMemberAccount(payload);
+  }
+  saveBtn.disabled = false;
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  bootstrap.Modal.getInstance(document.getElementById('addMemberModal')).hide();
+  if (res.needsRelogin) {
+    showToast('Üye kaydedildi. Güvenlik nedeniyle tekrar giriş yapmanız gerekiyor.', 'success');
+    setTimeout(() => location.href = 'personel-girisi.html', 1200);
+    return;
+  }
+  showToast(editingMemberId ? 'Üye güncellendi.' : 'Üye kaydedildi.', 'success');
+  renderTable();
+}
+</script>
+</body>
+</html>

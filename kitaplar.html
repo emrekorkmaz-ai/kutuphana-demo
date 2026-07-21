@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitaplar - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için personel girişi yapmalısınız. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="section-title">Kitaplar</h2>
+        <p class="text-muted mb-0" id="libraryLabel"></p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <div id="libSwitcherHolder"></div>
+        <button class="btn btn-navy" id="addBookBtn" data-bs-toggle="modal" data-bs-target="#addBookModal" onclick="openAddBookModal()"><i class="bi bi-plus-lg"></i> Kitap Ekle</button>
+      </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-6">
+          <input type="text" id="searchInput" class="form-control" placeholder="Başlık veya yazara göre ara...">
+        </div>
+        <div class="col-md-3">
+          <select id="categoryFilter" class="form-select"><option value="">Tüm Kategoriler</option></select>
+        </div>
+        <div class="col-md-3 text-md-end small text-muted" id="resultCount"></div>
+      </div>
+      <div class="mt-2 d-flex align-items-center gap-2">
+        <button class="btn btn-outline-navy btn-sm" id="fetchCoversBtn" onclick="fetchVisibleCovers()">
+          <i class="bi bi-image"></i> Kapakları Getir (Open Library)
+        </button>
+        <span class="small text-muted" id="coverFetchStatus"></span>
+      </div>
+    </div>
+
+    <div class="card p-3 mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h6 class="text-navy mb-0">Excel Toplu İşlemler</h6>
+        <span class="badge bg-orange">Yakında Eklenecek</span>
+      </div>
+      <!-- Tasarımcı için not: Bu bölüm demo kapsamında işlevsiz bırakılmıştır.
+           İleride SheetJS (xlsx) entegrasyonu ile: Şablon İndir / Kitapları Dışa Aktar / Toplu Yükle
+           işlevleri BOOK_EXCEL_COLUMNS benzeri esnek bir sütun tanımına göre etkinleştirilecektir. -->
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-secondary btn-sm" disabled title="Yakında Eklenecek">Şablon İndir</button>
+        <button class="btn btn-outline-secondary btn-sm" disabled title="Yakında Eklenecek">Kitapları Dışa Aktar</button>
+        <button class="btn btn-outline-secondary btn-sm" disabled title="Yakında Eklenecek">Toplu Yükle</button>
+      </div>
+    </div>
+
+    <div class="table-responsive-card">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th style="width:56px;"></th>
+              <th>Başlık</th>
+              <th>Yazar</th>
+              <th>Kategori</th>
+              <th>Stok / Toplam</th>
+              <th>Durum</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="booksTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Kitap Ekle / Düzenle Modal -->
+<div class="modal fade" id="addBookModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy" id="bookModalTitle">Kitap Ekle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" data-field="book.title">Başlık *</label>
+            <input type="text" id="bookTitleInput" class="form-control">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" data-field="book.author">Yazar *</label>
+            <input type="text" id="bookAuthorInput" class="form-control">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" data-field="book.isbn">ISBN (opsiyonel)</label>
+            <input type="text" id="bookIsbnInput" class="form-control" placeholder="Kapak aramasını isabetli yapar">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" data-field="book.total">Adet *</label>
+            <input type="number" id="bookTotalInput" class="form-control" min="1" value="1">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" data-field="book.addedDate">Kayıt Tarihi</label>
+            <input type="date" id="bookDateInput" class="form-control">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" data-field="book.source">Kaynak *</label>
+            <select id="bookSourceInput" class="form-select"></select>
+          </div>
+          <div class="col-md-12 mb-3">
+            <label class="form-label" data-field="book.category">Kategori</label>
+            <div id="categoryInputHolder"></div>
+          </div>
+          <div class="col-12 mb-3">
+            <label class="form-label" data-field="book.description">Açıklama <span class="text-muted small">(satış kodu / ihale no vb.)</span></label>
+            <textarea id="bookDescInput" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="col-12" id="extraFieldsHolder"></div>
+        </div>
+
+        <hr>
+        <h6 class="text-navy">Kapak Görseli</h6>
+        <p class="small text-muted">Open Library üzerinden arayıp bir kapak seçebilirsiniz.</p>
+        <div class="d-flex gap-2 mb-2">
+          <button type="button" class="btn btn-outline-navy btn-sm" onclick="searchCover()">Kapak Ara (Open Library)</button>
+          <span class="small text-success align-self-center" id="coverSelectedLabel"></span>
+        </div>
+        <div class="row g-2" id="coverResults"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-navy" id="bookSaveBtn" onclick="saveNewBook()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Geçmiş Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy" id="historyModalTitle">Kitap Geçmişi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-group" id="historyList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+let coverFetchRunning = false;
+
+(async () => {
+  if (await initAdminPage('kitaplar', { requireLogin: true })) boot();
+})();
+
+function boot() {
+  applyCoreFieldLabels();
+  const staff = getCurrentStaff();
+  document.getElementById('bookSourceInput').innerHTML = BOOK_SOURCES.map(s => `<option>${s}</option>`).join('');
+  document.getElementById('bookDateInput').value = todayStr();
+
+  if (!hasPermission('manage_books')) {
+    document.getElementById('addBookBtn').classList.add('d-none');
+  }
+
+  renderLibSwitcher();
+  renderCategoryFilter();
+  renderCategoryInput();
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('book', {}) + '</div>';
+  document.getElementById('libraryLabel').textContent = libraryName(getEffectiveLibrary());
+
+  renderTable();
+  autoEnrichFirstCoversGuarded();
+
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+  document.getElementById('categoryFilter').addEventListener('change', renderTable);
+}
+
+// Sayfa ilk açıldığında görünen kitapların ilk bir kısmı için sessizce kapak aranır.
+async function autoEnrichFirstCovers() {
+  const books = (window.__currentTableBooks || []).filter(b => !b.coverUrl).slice(0, 16);
+  if (!books.length) return;
+  await enrichBookCovers(books, (bookId, url) => {
+    const img = document.getElementById('rowcover-' + bookId);
+    if (img) img.src = url;
+  });
+}
+
+function renderLibSwitcher() {
+  const staff = getCurrentStaff();
+  const holder = document.getElementById('libSwitcherHolder');
+  if (staff.activeLibrary !== 'all') { holder.innerHTML = ''; return; }
+  const data = getData();
+  const current = getEffectiveLibrary();
+  holder.innerHTML = `<select class="form-select form-select-sm" onchange="setEffectiveLibrary(this.value); location.reload();">
+    ${data.libraries.map(l => `<option value="${l.id}" ${l.id === current ? 'selected' : ''}>${escapeHtml(l.name)}</option>`).join('')}
+  </select>`;
+}
+
+function renderCategoryFilter() {
+  const data = getData();
+  const sel = document.getElementById('categoryFilter');
+  sel.innerHTML = '<option value="">Tüm Kategoriler</option>' +
+    data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+function renderCategoryInput(existingValue) {
+  const data = getData();
+  const holder = document.getElementById('categoryInputHolder');
+  const existingArr = Array.isArray(existingValue) ? existingValue : (existingValue ? [existingValue] : []);
+  if (data.categoryMode === 'multi') {
+    holder.innerHTML = `<div class="d-flex flex-wrap gap-3">${data.categories.map(c => `
+      <div class="form-check form-check-inline">
+        <input class="form-check-input category-multi" type="checkbox" value="${c.id}" id="cat_${c.id}" ${existingArr.includes(c.id) ? 'checked' : ''}>
+        <label class="form-check-label small" for="cat_${c.id}">${escapeHtml(c.name)}</label>
+      </div>`).join('')}</div>`;
+  } else {
+    holder.innerHTML = `<select class="form-select" id="categorySelect">
+      <option value="">Kategori Seçiniz</option>
+      ${data.categories.map(c => `<option value="${c.id}" ${existingArr[0] === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+    </select>`;
+  }
+}
+
+function collectCategoryValue() {
+  const data = getData();
+  if (data.categoryMode === 'multi') {
+    return Array.from(document.querySelectorAll('.category-multi:checked')).map(el => el.value);
+  }
+  const el = document.getElementById('categorySelect');
+  return el ? el.value : '';
+}
+
+function categoryDisplay(book) {
+  if (Array.isArray(book.category)) return book.category.map(categoryName).filter(Boolean).join(', ') || '—';
+  return categoryName(book.category) || '—';
+}
+
+function renderTable() {
+  const staff = getCurrentStaff();
+  const lib = getEffectiveLibrary();
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const catFilter = document.getElementById('categoryFilter').value;
+  const data = getData();
+
+  let books = data.books.filter(b => b.library === lib);
+  if (q) books = books.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+  if (catFilter) books = books.filter(b => Array.isArray(b.category) ? b.category.includes(catFilter) : b.category === catFilter);
+
+  document.getElementById('resultCount').textContent = `${books.length} kayıt`;
+
+  const canManage = hasPermission('manage_books');
+
+  document.getElementById('booksTable').innerHTML = books.map(b => {
+    const st = bookStatus(b);
+    return `<tr>
+      <td><img src="${bookCover(b)}" class="book-cover" id="rowcover-${b.id}" style="width:40px;height:56px;"></td>
+      <td>${escapeHtml(b.title)}</td>
+      <td>${escapeHtml(b.author)}</td>
+      <td class="small">${categoryDisplay(b)}</td>
+      <td>${b.stock} / ${b.total}</td>
+      <td><span class="badge bg-${st.cls}">${st.label}</span></td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-navy" onclick="showHistory('${b.id}')">Geçmiş</button>
+        ${canManage ? `<button class="btn btn-sm btn-outline-secondary ms-1" onclick="openEditBookModal('${b.id}')"><i class="bi bi-pencil"></i></button>` : ''}
+        ${canManage ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="removeBook('${b.id}')"><i class="bi bi-trash"></i></button>` : ''}
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="text-center text-muted py-4">Kayıt bulunamadı.</td></tr>`;
+
+  window.__currentTableBooks = books;
+}
+
+async function fetchVisibleCovers() {
+  if (coverFetchRunning) { showToast('Kapaklar zaten getiriliyor, lütfen bekleyin.', 'danger'); return; }
+  const books = (window.__currentTableBooks || []).filter(b => !b.coverUrl);
+  if (!books.length) { showToast('Görünen kitapların tümünde zaten kapak var.', 'success'); return; }
+  const batch = books.slice(0, 40);
+  coverFetchRunning = true;
+  const statusEl = document.getElementById('coverFetchStatus');
+  const btn = document.getElementById('fetchCoversBtn');
+  btn.disabled = true;
+  let found = 0, checked = 0;
+  statusEl.textContent = `0 / ${batch.length} kapak kontrol ediliyor...`;
+  await enrichBookCovers(batch, (bookId, url) => {
+    found++;
+    checked++;
+    statusEl.textContent = `${checked} / ${batch.length} kapak kontrol ediliyor...`;
+    const img = document.getElementById('rowcover-' + bookId);
+    if (img) img.src = url;
+  });
+  statusEl.textContent = `Tamamlandı — ${found} yeni kapak eklendi.`;
+  btn.disabled = false;
+  coverFetchRunning = false;
+}
+
+async function autoEnrichFirstCoversGuarded() {
+  coverFetchRunning = true;
+  await autoEnrichFirstCovers();
+  coverFetchRunning = false;
+}
+
+async function searchCover() {
+  const title = document.getElementById('bookTitleInput').value;
+  const author = document.getElementById('bookAuthorInput').value;
+  const isbn = document.getElementById('bookIsbnInput').value;
+  const q = isbn ? `isbn:${isbn}` : `${title} ${author}`.trim();
+  const resultsEl = document.getElementById('coverResults');
+  if (!q) { showToast('Önce başlık/yazar veya ISBN girin.', 'danger'); return; }
+  resultsEl.innerHTML = '<div class="text-muted small">Aranıyor...</div>';
+  const results = await searchBookCovers(q);
+  if (results === null) {
+    resultsEl.innerHTML = '<div class="text-danger small">Arama sırasında bir hata oluştu (internet bağlantısını kontrol edin).</div>';
+    return;
+  }
+  if (!results.length) {
+    resultsEl.innerHTML = '<div class="text-muted small">Sonuç bulunamadı. Kapaksız devam edebilirsiniz.</div>';
+    return;
+  }
+  window.__coverCandidates = results;
+  resultsEl.innerHTML = results.map((r, i) => `
+    <div class="col-4 col-md-3">
+      <div class="cover-pick" onclick="selectCover(${i}, this)">
+        <img src="${r.thumbnail}" class="book-cover mb-1">
+        <div class="small text-truncate" title="${escapeHtml(r.title)}">${escapeHtml(r.title)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function selectCover(i, el) {
+  document.querySelectorAll('.cover-pick').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  window.__selectedCoverUrl = window.__coverCandidates[i].thumbnail;
+  document.getElementById('coverSelectedLabel').textContent = 'Kapak seçildi ✓';
+}
+
+let editingBookId = null;
+
+function openAddBookModal() {
+  editingBookId = null;
+  document.getElementById('bookModalTitle').textContent = 'Kitap Ekle';
+  document.getElementById('bookSaveBtn').textContent = 'Kaydet';
+  document.getElementById('bookTitleInput').value = '';
+  document.getElementById('bookAuthorInput').value = '';
+  document.getElementById('bookIsbnInput').value = '';
+  document.getElementById('bookTotalInput').value = 1;
+  document.getElementById('bookDateInput').value = todayStr();
+  document.getElementById('bookDescInput').value = '';
+  document.getElementById('coverResults').innerHTML = '';
+  document.getElementById('coverSelectedLabel').textContent = '';
+  window.__selectedCoverUrl = '';
+  renderCategoryInput();
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('book', {}) + '</div>';
+}
+
+function openEditBookModal(id) {
+  if (!requirePermission('manage_books', 'Kitap Kaydı Yönetimi')) return;
+  const data = getData();
+  const book = data.books.find(b => b.id === id);
+  if (!book) return;
+  editingBookId = id;
+  document.getElementById('bookModalTitle').textContent = 'Kitap Düzenle';
+  document.getElementById('bookSaveBtn').textContent = 'Güncelle';
+  document.getElementById('bookTitleInput').value = book.title;
+  document.getElementById('bookAuthorInput').value = book.author;
+  document.getElementById('bookIsbnInput').value = book.isbn || '';
+  document.getElementById('bookTotalInput').value = book.total;
+  document.getElementById('bookDateInput').value = book.addedDate || todayStr();
+  document.getElementById('bookSourceInput').value = book.source;
+  document.getElementById('bookDescInput').value = book.description || '';
+  document.getElementById('coverResults').innerHTML = '';
+  document.getElementById('coverSelectedLabel').textContent = book.coverUrl ? 'Mevcut kapak korunacak (yeniden arayabilirsiniz).' : '';
+  window.__selectedCoverUrl = '';
+  renderCategoryInput(book.category);
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('book', book.extra || {}) + '</div>';
+  new bootstrap.Modal(document.getElementById('addBookModal')).show();
+}
+
+async function saveNewBook() {
+  if (!requirePermission('manage_books', 'Kitap Kaydı Yönetimi')) return;
+  const title = document.getElementById('bookTitleInput').value.trim();
+  const author = document.getElementById('bookAuthorInput').value.trim();
+  const total = document.getElementById('bookTotalInput').value;
+  if (!title || !author || !total || Number(total) < 1) {
+    showToast('Başlık, yazar ve adet alanları zorunludur.', 'danger');
+    return;
+  }
+  const payload = {
+    title, author,
+    isbn: document.getElementById('bookIsbnInput').value.trim(),
+    total,
+    addedDate: document.getElementById('bookDateInput').value || todayStr(),
+    source: document.getElementById('bookSourceInput').value,
+    description: document.getElementById('bookDescInput').value.trim(),
+    category: collectCategoryValue(),
+    coverUrl: window.__selectedCoverUrl || '',
+    extra: collectExtraFields(document.getElementById('extraFieldsHolder'))
+  };
+
+  const saveBtn = document.getElementById('bookSaveBtn');
+  saveBtn.disabled = true;
+  if (editingBookId) {
+    const res = await updateBook(editingBookId, payload);
+    saveBtn.disabled = false;
+    if (!res.ok) { showToast(res.msg, 'danger'); return; }
+    showToast('Kitap güncellendi.', 'success');
+  } else {
+    payload.library = getEffectiveLibrary();
+    await addBook(payload);
+    saveBtn.disabled = false;
+    showToast('Kitap kaydedildi.', 'success');
+  }
+
+  window.__selectedCoverUrl = '';
+  bootstrap.Modal.getInstance(document.getElementById('addBookModal')).hide();
+  renderTable();
+}
+
+async function removeBook(id) {
+  if (!requirePermission('manage_books', 'Kitap Kaydı Yönetimi')) return;
+  if (!confirm('Bu kitap kaydını silmek istediğinize emin misiniz?')) return;
+  const res = await deleteBook(id);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Kayıt silindi.', 'success');
+  renderTable();
+}
+
+function showHistory(id) {
+  const data = getData();
+  const book = data.books.find(b => b.id === id);
+  document.getElementById('historyModalTitle').textContent = `Geçmiş — ${book.title}`;
+  const logs = [...(book.logs || [])].sort((a, c) => new Date(c.date) - new Date(a.date));
+  document.getElementById('historyList').innerHTML = logs.map(l => `
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+      <div><strong>${escapeHtml(l.type)}</strong><div class="small text-muted">${escapeHtml(l.note)}</div></div>
+      <span class="small text-muted">${formatDateTR(l.date)}</span>
+    </li>`).join('') || '<li class="list-group-item text-muted">Kayıt yok.</li>';
+  new bootstrap.Modal(document.getElementById('historyModal')).show();
+}
+</script>
+</body>
+</html>

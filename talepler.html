@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talepler - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için personel girişi yapmalısınız. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <h2 class="section-title mb-3">Talepler</h2>
+    <p class="text-muted">Üyelerin portal üzerinden gönderdiği süre uzatma ve istek listesi talepleri.</p>
+
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link active" data-tab="pending" onclick="switchReqTab('pending')">Bekleyen</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="all" onclick="switchReqTab('all')">Tümü</button></li>
+      <li class="nav-item d-none" id="feedbackTabBtn"><button class="nav-link" data-tab="feedback" onclick="switchReqTab('feedback')">Geri Bildirimler</button></li>
+    </ul>
+
+    <div id="requestsList"></div>
+
+    <div id="feedbackList" class="d-none">
+      <div class="table-responsive-card">
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>İsim</th><th>Telefon</th><th>Mesaj</th><th>Tarih</th></tr></thead>
+            <tbody id="feedbackTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+let reqTab = 'pending';
+
+(async () => {
+  if (await initAdminPage('talepler', { requireLogin: true })) boot();
+})();
+
+function boot() {
+  document.getElementById('feedbackTabBtn').classList.toggle('d-none', !hasPermission('view_feedback'));
+  renderRequests();
+}
+
+function switchReqTab(key) {
+  reqTab = key;
+  document.querySelectorAll('.nav-tabs .nav-link').forEach(el => el.classList.toggle('active', el.dataset.tab === key));
+  document.getElementById('requestsList').classList.toggle('d-none', key === 'feedback');
+  document.getElementById('feedbackList').classList.toggle('d-none', key !== 'feedback');
+  if (key === 'feedback') {
+    if (!hasPermission('view_feedback')) { switchReqTab('pending'); return; }
+    renderFeedbackTable();
+  } else {
+    renderRequests();
+  }
+}
+
+function renderFeedbackTable() {
+  const data = getData();
+  document.getElementById('feedbackTable').innerHTML = [...data.feedback].sort((a, c) => new Date(c.date) - new Date(a.date)).map(f => `
+    <tr><td>${escapeHtml(f.name)}</td><td>${escapeHtml(f.phone)}</td><td>${escapeHtml(f.message)}</td><td>${formatDateTR(f.date)}</td></tr>
+  `).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
+}
+
+function renderRequests() {
+  const data = getData();
+  const canAct = hasPermission('lend_return');
+  let list = data.requests.filter(r => reqTab === 'all' || r.status === 'pending');
+  list.sort((a, c) => new Date(c.date) - new Date(a.date));
+
+  const typeLabel = { extend: 'Süre Uzatma Talebi', wishlist: 'İstek Listesi' };
+  const statusBadge = { pending: '<span class="badge bg-orange">Bekliyor</span>', approved: '<span class="badge bg-green">Onaylandı</span>', rejected: '<span class="badge bg-secondary">Reddedildi</span>' };
+
+  document.getElementById('requestsList').innerHTML = list.map(r => {
+    const user = data.users.find(u => u.id === r.userId) || { name: '—' };
+    let detail = '';
+    if (r.type === 'extend') {
+      const rental = data.rentals.find(x => x.id === r.rentalId);
+      const book = rental ? data.books.find(b => b.id === rental.bookId) : null;
+      detail = `Kitap: <strong>${escapeHtml(book ? book.title : '—')}</strong> — mevcut iade tarihi: ${rental ? formatDateTR(rental.dueDate) : '—'}`;
+    } else {
+      detail = `İstenen kitap: <strong>${escapeHtml(r.bookTitle || '—')}</strong>`;
+    }
+    let actions = '';
+    if (r.status === 'pending' && canAct) {
+      actions = `<button class="btn btn-sm btn-navy" onclick="doApproveReq('${r.id}')">Onayla</button>
+                 <button class="btn btn-sm btn-outline-danger ms-1" onclick="doRejectReq('${r.id}')">Reddet</button>`;
+    }
+    return `<div class="card p-3 mb-2">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <span class="badge bg-navy">${typeLabel[r.type] || r.type}</span> ${statusBadge[r.status]}
+          <div class="mt-1"><strong>${escapeHtml(user.name)}</strong> — ${formatDateTR(r.date)}</div>
+          <div class="small">${detail}</div>
+          ${r.note ? `<div class="small text-muted mt-1">"${escapeHtml(r.note)}"</div>` : ''}
+        </div>
+        <div class="text-end">${actions}</div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="text-muted text-center py-4">Kayıt bulunamadı.</div>';
+}
+
+async function doApproveReq(id) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  const res = await updateRequestStatus(id, 'approved');
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Talep onaylandı.', 'success');
+  renderRequests();
+}
+async function doRejectReq(id) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  await updateRequestStatus(id, 'rejected');
+  showToast('Talep reddedildi.', 'success');
+  renderRequests();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ödünç İşlemleri - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için personel girişi yapmalı ve bir kütüphane seçmelisiniz. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="section-title">Ödünç İşlemleri</h2>
+        <p class="text-muted mb-0" id="libraryLabel"></p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <div id="libSwitcherHolder"></div>
+        <button class="btn btn-navy" id="lendBtn" data-bs-toggle="modal" data-bs-target="#lendModal" onclick="openLendModal()"><i class="bi bi-plus-lg"></i> Ödünç Ver</button>
+      </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <input type="text" id="searchInput" class="form-control" placeholder="Üye veya kitaba göre ara...">
+    </div>
+
+    <div class="table-responsive-card">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr><th>Üye</th><th>Kitap</th><th>Kütüphane</th><th>Alış Tarihi</th><th>İade Tarihi</th><th>Durum</th><th></th></tr>
+          </thead>
+          <tbody id="rentalsTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ödünç Ver Modal -->
+<div class="modal fade" id="lendModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy">Kitap Ödünç Ver</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <div id="lendStepSelect">
+          <div class="mb-2 d-none" id="lendLibraryHolder">
+            <label class="form-label">Ödünç Verilecek Kütüphane *</label>
+            <select id="lendLibrarySelect" class="form-select" onchange="onLendLibraryChange()"></select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Üye *</label>
+            <select id="lendUserSelect" class="form-select" onchange="renderUserHistoryStats()"></select>
+          </div>
+          <div id="lendWarnings"></div>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <div class="stat-card accent-green text-center py-2">
+                <div class="stat-value" id="statOnTime">–</div>
+                <div class="stat-label">Gününde Teslim</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-card accent text-center py-2">
+                <div class="stat-value" id="statOverdue">–</div>
+                <div class="stat-label">Geciken</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-card text-center py-2">
+                <div class="stat-value" id="statExtended">–</div>
+                <div class="stat-label">Süre Uzatılan</div>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label mb-0">Kitap(lar) * <span class="text-muted small">(sadece stokta olanlar)</span></label>
+              <span class="small text-muted" id="lendBookSelectedCount"></span>
+            </div>
+            <input type="text" id="lendBookSearch" class="form-control form-control-sm mb-2" placeholder="Kitap adı veya yazar ara..." oninput="renderBookChecklist()">
+            <div id="lendBookList" class="border rounded p-2" style="max-height:220px; overflow-y:auto;"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">İade Süresi (gün)</label>
+            <input type="number" id="lendDaysInput" class="form-control" value="14" min="1">
+          </div>
+          <button class="btn btn-navy w-100" onclick="goToOtpStep()">Devam Et — Telefon Doğrula</button>
+        </div>
+
+        <div id="lendStepOtp" class="d-none">
+          <div class="mb-2">
+            <label class="form-label">Telefon Numarası <span class="text-muted small">(kayıtlıdan farklıysa güncelleyebilirsiniz)</span></label>
+            <input type="text" id="lendPhoneInput" class="form-control">
+          </div>
+          <button class="btn btn-outline-navy btn-sm mb-3" onclick="sendLendOtp()">Doğrulama Kodu Gönder</button>
+          <div class="mb-3">
+            <label class="form-label">Doğrulama Kodu</label>
+            <input type="text" id="lendOtpInput" class="form-control" placeholder="Demo modunda: 1">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Bildirim Kanalı</label>
+            <div class="d-flex gap-3">
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="lendChannelSms" checked><label class="form-check-label small" for="lendChannelSms">SMS</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="lendChannelEmail" checked><label class="form-check-label small" for="lendChannelEmail">E-posta</label></div>
+            </div>
+            <div class="small text-muted" id="lendEmailHint"></div>
+          </div>
+          <button class="btn btn-navy w-100" onclick="confirmLend()">Doğrula ve Ödünç Ver</button>
+          <button class="btn btn-link w-100 mt-1" onclick="backToSelectStep()">Geri Dön</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ödünç Kaydını Düzenle Modal -->
+<div class="modal fade" id="editRentalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy">Ödünç Kaydını Düzenle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted" id="editRentalTargetLabel"></p>
+        <label class="form-label">İade Tarihi</label>
+        <input type="date" id="editRentalDueDate" class="form-control">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-navy" onclick="saveEditRental()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hatırlatma Modal -->
+<div class="modal fade" id="remindModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy">Gecikme Hatırlatması Gönder</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted" id="remindTargetLabel"></p>
+        <label class="form-label">Bildirim Kanalı</label>
+        <div class="d-flex gap-3 mb-2">
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="remindChannelSms" checked><label class="form-check-label small" for="remindChannelSms">SMS</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="remindChannelEmail" checked><label class="form-check-label small" for="remindChannelEmail">E-posta</label></div>
+        </div>
+        <div class="small text-muted" id="remindEmailHint"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-navy" onclick="sendRemind()">Gönder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+let remindRentalId = null;
+let currentOtp = '';
+
+(async () => {
+  if (await initAdminPage('kiralama', { requireLogin: true })) boot();
+})();
+
+function boot() {
+  if (!hasPermission('lend_return')) {
+    document.getElementById('lendBtn').classList.add('d-none');
+  }
+  renderLibSwitcher();
+  document.getElementById('libraryLabel').textContent = libraryName(getEffectiveLibrary());
+  renderTable();
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+}
+
+function renderLibSwitcher() {
+  const staff = getCurrentStaff();
+  const holder = document.getElementById('libSwitcherHolder');
+  if (staff.activeLibrary !== 'all') { holder.innerHTML = ''; return; }
+  const data = getData();
+  const current = getEffectiveLibrary();
+  holder.innerHTML = `<select class="form-select form-select-sm" onchange="setEffectiveLibrary(this.value); location.reload();">
+    ${data.libraries.map(l => `<option value="${l.id}" ${l.id === current ? 'selected' : ''}>${escapeHtml(l.name)}</option>`).join('')}
+  </select>`;
+}
+
+function renderTable() {
+  const data = getData();
+  const lib = getEffectiveLibrary();
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const canLend = hasPermission('lend_return');
+
+  let rentals = data.rentals.filter(r => {
+    const book = data.books.find(b => b.id === r.bookId);
+    return book && book.library === lib;
+  });
+  if (q) {
+    rentals = rentals.filter(r => {
+      const user = data.users.find(u => u.id === r.userId);
+      const book = data.books.find(b => b.id === r.bookId);
+      return (user && user.name.toLowerCase().includes(q)) || (book && book.title.toLowerCase().includes(q));
+    });
+  }
+  rentals.sort((a, c) => new Date(c.rentalDate) - new Date(a.rentalDate));
+
+  document.getElementById('rentalsTable').innerHTML = rentals.map(r => {
+    const user = data.users.find(u => u.id === r.userId) || { name: '—', phone: '' };
+    const book = data.books.find(b => b.id === r.bookId) || { title: '—' };
+    const st = rentalStatus(r);
+    let actions = '';
+    if (!r.returnDate && !r.lost && canLend) {
+      actions = `
+        <button class="btn btn-sm btn-outline-navy" onclick="doReturn('${r.id}')">İade Al</button>
+        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="doExtend('${r.id}')">Süre Uzat</button>
+        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="openRemindModal('${r.id}')"><i class="bi bi-chat-dots"></i></button>
+        <div class="btn-group ms-1">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots"></i></button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item" onclick="openEditRentalModal('${r.id}')">Düzenle</button></li>
+            <li><button class="dropdown-item text-danger" onclick="doReportLost('${r.id}')">Kayıp Bildir</button></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item text-danger" onclick="doCancelRental('${r.id}')">İptal Et (Hatalı Kayıt)</button></li>
+          </ul>
+        </div>`;
+    } else if (r.lost && canLend) {
+      actions = `<button class="btn btn-sm btn-outline-warning" onclick="doUndoLost('${r.id}')">Kayıp Geri Al</button>`;
+    }
+    return `<tr>
+      <td>${escapeHtml(user.name)}</td>
+      <td>${escapeHtml(book.title)}</td>
+      <td class="small text-muted">${escapeHtml(libraryName(book.library))}</td>
+      <td>${formatDateTR(r.rentalDate)}</td>
+      <td>${formatDateTR(r.dueDate)}</td>
+      <td><span class="badge bg-${st.cls}">${st.label}</span></td>
+      <td class="text-end">${actions}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Kayıt bulunamadı.</td></tr>';
+}
+
+let lendLibraryId = null;
+
+function openLendModal() {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) {
+    bootstrap.Modal.getInstance(document.getElementById('lendModal'))?.hide();
+    return;
+  }
+  const data = getData();
+  const staff = getCurrentStaff();
+  lendLibraryId = getEffectiveLibrary();
+
+  const libHolder = document.getElementById('lendLibraryHolder');
+  if (staff.library === 'all') {
+    libHolder.classList.remove('d-none');
+    document.getElementById('lendLibrarySelect').innerHTML = data.libraries.map(l =>
+      `<option value="${l.id}" ${l.id === lendLibraryId ? 'selected' : ''}>${escapeHtml(l.name)}</option>`).join('');
+  } else {
+    libHolder.classList.add('d-none');
+  }
+
+  document.getElementById('lendUserSelect').innerHTML = data.users.map(u => `<option value="${u.id}">${escapeHtml(u.name)} (${escapeHtml(u.phone)})</option>`).join('');
+  document.getElementById('lendDaysInput').value = 14;
+  document.getElementById('lendBookSearch').value = '';
+  lendSelectedBookIds = new Set();
+  backToSelectStep();
+  renderUserHistoryStats();
+}
+
+function onLendLibraryChange() {
+  lendLibraryId = document.getElementById('lendLibrarySelect').value;
+  lendSelectedBookIds = new Set();
+  renderBookChecklist();
+}
+
+let lendSelectedBookIds = new Set();
+
+function renderBookChecklist() {
+  const data = getData();
+  const lib = lendLibraryId || getEffectiveLibrary();
+  const userId = document.getElementById('lendUserSelect').value;
+  const policies = getPolicies();
+  const activeCount = data.rentals.filter(r => r.userId === userId && !r.returnDate && !r.lost).length;
+  const remaining = Math.max(0, policies.maxActiveRentals - activeCount);
+  const holder = document.getElementById('lendBookList');
+  holder.dataset.max = remaining;
+  document.getElementById('lendBookSelectedCount').textContent = remaining ? `${lendSelectedBookIds.size} / ${remaining} kitap seçildi` : '';
+  if (!remaining) {
+    holder.innerHTML = '<div class="text-danger small">Bu üye maksimum ödünç kitap sayısına ulaşmış, yeni kitap seçilemez.</div>';
+    return;
+  }
+  const q = (document.getElementById('lendBookSearch').value || '').toLowerCase().trim();
+  let availableBooks = data.books.filter(b => b.library === lib && b.stock > 0);
+  if (q) availableBooks = availableBooks.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+  holder.innerHTML = availableBooks.length
+    ? availableBooks.map(b => `
+      <div class="form-check">
+        <input class="form-check-input lend-book-check" type="checkbox" value="${b.id}" id="bookchk_${b.id}" ${lendSelectedBookIds.has(b.id) ? 'checked' : ''} onchange="toggleBookCheckbox(this)">
+        <label class="form-check-label small" for="bookchk_${b.id}">${escapeHtml(b.title)} — ${escapeHtml(b.author)} (${b.stock} adet)</label>
+      </div>`).join('')
+    : '<div class="text-muted small">Aramanızla eşleşen uygun kitap yok.</div>';
+}
+
+function toggleBookCheckbox(cb) {
+  const holder = document.getElementById('lendBookList');
+  const max = Number(holder.dataset.max || 0);
+  if (cb.checked) {
+    if (lendSelectedBookIds.size >= max) {
+      cb.checked = false;
+      showToast(`Bu üye için en fazla ${max} kitap seçebilirsiniz.`, 'danger');
+      return;
+    }
+    lendSelectedBookIds.add(cb.value);
+  } else {
+    lendSelectedBookIds.delete(cb.value);
+  }
+  document.getElementById('lendBookSelectedCount').textContent = `${lendSelectedBookIds.size} / ${max} kitap seçildi`;
+}
+
+function renderUserHistoryStats() {
+  lendSelectedBookIds = new Set();
+  const data = getData();
+  const userId = document.getElementById('lendUserSelect').value;
+  const user = data.users.find(u => u.id === userId);
+  const rentals = data.rentals.filter(r => r.userId === userId);
+
+  const onTime = rentals.filter(r => r.returnDate && r.returnDate <= r.dueDate).length;
+  const overdue = rentals.filter(r => {
+    if (r.returnDate) return r.returnDate > r.dueDate;
+    return rentalStatus(r).overdueDays > 0;
+  }).length;
+  const extended = rentals.filter(r => (r.extendedCount || 0) > 0).length;
+
+  document.getElementById('statOnTime').textContent = onTime;
+  document.getElementById('statOverdue').textContent = overdue;
+  document.getElementById('statExtended').textContent = extended;
+
+  const policies = getPolicies();
+  const activeCount = rentals.filter(r => !r.returnDate && !r.lost).length;
+  const lostRentals = getLostRentalsForUser(userId);
+  const warnings = [];
+  if (lostRentals.length) {
+    warnings.push(`<i class="bi bi-exclamation-triangle-fill"></i> Bu üye daha önce ${lostRentals.length} kitabı kayıp bildirmiş (son: ${escapeHtml(data.books.find(b => b.id === lostRentals[lostRentals.length - 1].bookId)?.title || '—')}).`);
+  }
+  if (user && isMemberInactive(user)) {
+    warnings.push(`<i class="bi bi-exclamation-triangle-fill"></i> Bu üye yaklaşık ${policies.inactivityMonths} aydır pasif durumda.`);
+  }
+  if (activeCount >= policies.maxActiveRentals) {
+    warnings.push(`<i class="bi bi-exclamation-triangle-fill"></i> Bu üye maksimum ödünç kitap sayısına ulaşmış (${activeCount}/${policies.maxActiveRentals}).`);
+  }
+  document.getElementById('lendWarnings').innerHTML = warnings.length
+    ? `<div class="alert alert-warning small py-2 mb-3">${warnings.join('<br>')}</div>` : '';
+
+  renderBookChecklist();
+}
+
+function backToSelectStep() {
+  document.getElementById('lendStepSelect').classList.remove('d-none');
+  document.getElementById('lendStepOtp').classList.add('d-none');
+  currentOtp = '';
+}
+
+function goToOtpStep() {
+  if (!lendSelectedBookIds.size) { showToast('En az bir kitap seçin.', 'danger'); return; }
+  const data = getData();
+  const user = data.users.find(u => u.id === document.getElementById('lendUserSelect').value);
+  document.getElementById('lendPhoneInput').value = user ? user.phone : '';
+  document.getElementById('lendOtpInput').value = '';
+  document.getElementById('lendStepSelect').classList.add('d-none');
+  document.getElementById('lendStepOtp').classList.remove('d-none');
+
+  const emailChk = document.getElementById('lendChannelEmail');
+  if (user && user.email) {
+    emailChk.disabled = false;
+    emailChk.checked = true;
+    document.getElementById('lendEmailHint').textContent = `Kayıtlı e-posta: ${user.email}`;
+  } else {
+    emailChk.disabled = true;
+    emailChk.checked = false;
+    document.getElementById('lendEmailHint').textContent = 'Üyenin kayıtlı e-postası yok.';
+  }
+}
+
+function sendLendOtp() {
+  const phone = document.getElementById('lendPhoneInput').value.trim();
+  if (!phone) { showToast('Telefon numarası girin.', 'danger'); return; }
+  currentOtp = generateOtp();
+  sendSms(phone, `Yenişehir Kütüphanesi doğrulama kodunuz: ${currentOtp} (Demo modunda "1" ile de doğrulayabilirsiniz.)`, { category: 'Ödünç Doğrulama' });
+}
+
+async function confirmLend() {
+  const input = document.getElementById('lendOtpInput').value.trim();
+  if (!verifyOtp(input, currentOtp)) {
+    showToast('Doğrulama kodu hatalı.', 'danger');
+    return;
+  }
+  const data = getData();
+  const userId = document.getElementById('lendUserSelect').value;
+  const bookIds = Array.from(lendSelectedBookIds);
+  const days = document.getElementById('lendDaysInput').value;
+  const enteredPhone = document.getElementById('lendPhoneInput').value.trim();
+  let user = data.users.find(u => u.id === userId);
+
+  if (enteredPhone && enteredPhone !== user.phone) {
+    const phoneRes = await updateMember(userId, { phone: enteredPhone });
+    if (!phoneRes.ok) { showToast(phoneRes.msg, 'danger'); return; }
+    user = phoneRes.user;
+    showToast(`Üyenin telefon numarası güncellendi: ${enteredPhone}`, 'info');
+  }
+
+  const lentBooks = [];
+  for (const bookId of bookIds) {
+    const res = await createRental({ userId, bookId, days });
+    if (!res.ok) {
+      showToast(lentBooks.length ? `${lentBooks.length} kitap ödünç verildi, sonraki kitapta hata: ${res.msg}` : res.msg, 'danger');
+      break;
+    }
+    const book = getData().books.find(b => b.id === bookId);
+    lentBooks.push({ book, rental: res.rental });
+  }
+  if (!lentBooks.length) return;
+
+  const lastDueDate = lentBooks[lentBooks.length - 1].rental.dueDate;
+  const titles = lentBooks.map(x => x.book ? x.book.title : '—').join(', ');
+  const vars = { ad: user.name, kitap: titles, tarih: formatDateTR(lastDueDate), kutuphane: libraryName(user.library) };
+
+  const wantSms = document.getElementById('lendChannelSms').checked;
+  const wantEmail = document.getElementById('lendChannelEmail').checked && !!user.email;
+
+  if (wantSms) {
+    const smsTpl = getSmsTemplate('lend');
+    const message = fillTemplate(smsTpl ? smsTpl.text : '', vars);
+    for (const x of lentBooks) await logRentalSms(x.rental.id, message);
+    sendSms(user.phone, message, { category: 'Ödünç Bildirimi' });
+  }
+  if (wantEmail) {
+    const mailTpl = getEmailTemplate('lend');
+    const subject = fillTemplate(mailTpl ? mailTpl.subject : 'Kütüphane Bildirimi', vars);
+    const body = fillTemplate(mailTpl ? mailTpl.body : '', vars);
+    for (const x of lentBooks) await logRentalEmail(x.rental.id, subject, body);
+    sendEmail(user.email, subject, body, { category: 'Ödünç Bildirimi' });
+  }
+
+  showToast(`${lentBooks.length} kitap için ödünç işlemi tamamlandı.`, 'success');
+  lendSelectedBookIds = new Set();
+  bootstrap.Modal.getInstance(document.getElementById('lendModal')).hide();
+  renderTable();
+}
+
+async function doReturn(rentalId) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  await returnRental(rentalId);
+  showToast('İade alındı.', 'success');
+  renderTable();
+}
+
+async function doExtend(rentalId) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  const res = await extendRental(rentalId, 7);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Süre 7 gün uzatıldı.', 'success');
+  renderTable();
+}
+
+async function doReportLost(rentalId) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  if (!confirm('Bu kitap kayıp olarak işaretlensin mi? Onay bekleyen bir imha talebi oluşturulacaktır. Onaydan önce "Kayıp Geri Al" ile iptal edebilirsiniz.')) return;
+  const res = await reportLostRental(rentalId);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Kayıp bildirildi, imha onayı bekleniyor (Yıpranmış Kitaplar sayfası).', 'success');
+  renderTable();
+}
+
+async function doUndoLost(rentalId) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  if (!confirm('Kayıp bildirimi geri alınsın mı? Kitap iade alınmış olarak işaretlenecektir.')) return;
+  const res = await undoLostRental(rentalId);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Kayıp bildirimi geri alındı, kitap iade alınmış sayıldı.', 'success');
+  renderTable();
+}
+
+async function doCancelRental(rentalId) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  if (!confirm('Bu ödünç kaydı iptal edilsin mi? Hatalı girilen bir kayıt olduğu için tamamen silinecektir.')) return;
+  const res = await cancelRental(rentalId);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Ödünç kaydı iptal edildi.', 'success');
+  renderTable();
+}
+
+let editRentalId = null;
+
+function openEditRentalModal(rentalId) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  editRentalId = rentalId;
+  const data = getData();
+  const rental = data.rentals.find(r => r.id === rentalId);
+  const user = data.users.find(u => u.id === rental.userId);
+  const book = data.books.find(b => b.id === rental.bookId);
+  document.getElementById('editRentalTargetLabel').textContent = `${user ? user.name : '—'} — "${book ? book.title : '—'}"`;
+  document.getElementById('editRentalDueDate').value = rental.dueDate;
+  new bootstrap.Modal(document.getElementById('editRentalModal')).show();
+}
+
+async function saveEditRental() {
+  if (!editRentalId) return;
+  const newDate = document.getElementById('editRentalDueDate').value;
+  const res = await updateRentalDueDate(editRentalId, newDate);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Ödünç kaydı güncellendi.', 'success');
+  bootstrap.Modal.getInstance(document.getElementById('editRentalModal')).hide();
+  renderTable();
+}
+
+function openRemindModal(rentalId) {
+  if (!requirePermission('lend_return', 'Ödünç Verme / İade')) return;
+  remindRentalId = rentalId;
+  const data = getData();
+  const rental = data.rentals.find(r => r.id === rentalId);
+  const user = data.users.find(u => u.id === rental.userId);
+  const book = data.books.find(b => b.id === rental.bookId);
+  document.getElementById('remindTargetLabel').textContent = `${user ? user.name : '—'} — "${book ? book.title : '—'}"`;
+
+  const emailChk = document.getElementById('remindChannelEmail');
+  if (user && user.email) {
+    emailChk.disabled = false;
+    emailChk.checked = true;
+    document.getElementById('remindEmailHint').textContent = `Kayıtlı e-posta: ${user.email}`;
+  } else {
+    emailChk.disabled = true;
+    emailChk.checked = false;
+    document.getElementById('remindEmailHint').textContent = 'Üyenin kayıtlı e-postası yok.';
+  }
+  new bootstrap.Modal(document.getElementById('remindModal')).show();
+}
+
+async function sendRemind() {
+  if (!remindRentalId) return;
+  const data = getData();
+  const rental = data.rentals.find(r => r.id === remindRentalId);
+  const user = data.users.find(u => u.id === rental.userId);
+  const book = data.books.find(b => b.id === rental.bookId);
+  const vars = { ad: user.name, kitap: book ? book.title : '', tarih: formatDateTR(rental.dueDate), kutuphane: libraryName(user.library) };
+
+  const wantSms = document.getElementById('remindChannelSms').checked;
+  const wantEmail = document.getElementById('remindChannelEmail').checked && !!user.email;
+
+  if (wantSms) {
+    const smsTpl = getSmsTemplate('overdue');
+    const message = fillTemplate(smsTpl ? smsTpl.text : '', vars);
+    await logRentalSms(remindRentalId, message);
+    sendSms(user.phone, message, { category: 'Gecikme Hatırlatması' });
+  }
+  if (wantEmail) {
+    const mailTpl = getEmailTemplate('overdue');
+    const subject = fillTemplate(mailTpl ? mailTpl.subject : 'Kütüphane Bildirimi', vars);
+    const body = fillTemplate(mailTpl ? mailTpl.body : '', vars);
+    await logRentalEmail(remindRentalId, subject, body);
+    sendEmail(user.email, subject, body, { category: 'Gecikme Hatırlatması' });
+  }
+
+  bootstrap.Modal.getInstance(document.getElementById('remindModal')).hide();
+  showToast('Hatırlatma gönderildi.', 'success');
+}
+</script>
+</body>
+</html>

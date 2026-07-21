@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personel & Roller - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-4">
+  <div id="login-required" class="d-none">
+    <div class="alert alert-warning">Bu sayfayı görüntülemek için yetkiniz bulunmuyor ya da giriş yapmadınız. <a href="personel-girisi.html">Personel Girişi &rarr;</a></div>
+  </div>
+
+  <div id="page-content" class="d-none">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="section-title">Personel & Roller</h2>
+        <p class="text-muted small mb-0">Sistem Yöneticisi rolü tüm kütüphanelere erişim yetkisiyle gelir.</p>
+      </div>
+      <button class="btn btn-navy" data-bs-toggle="modal" data-bs-target="#addStaffModal" onclick="openAddStaffModal()"><i class="bi bi-plus-lg"></i> Personel Ekle</button>
+    </div>
+
+    <div class="table-responsive-card">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr><th>İsim</th><th>Telefon</th><th>Kullanıcı Adı</th><th>Kütüphane</th><th>Roller</th><th>Durum</th><th></th></tr>
+          </thead>
+          <tbody id="staffTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addStaffModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy" id="staffModalTitle">Personel Ekle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning small d-none" id="sAddNote">Yeni personel hesabı oluşturulduğunda güvenlik nedeniyle sizin oturumunuz kapanacak ve tekrar giriş yapmanız istenecektir.</div>
+        <div class="row">
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="staff.name">İsim Soyisim *</label><input type="text" id="sName" class="form-control"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="staff.phone">Telefon</label><input type="text" id="sPhone" class="form-control"></div>
+          <div class="col-md-6 mb-3" id="sEmailHolder"><label class="form-label">E-posta * <span class="text-muted small">(giriş için kullanılır)</span></label><input type="email" id="sEmail" class="form-control" placeholder="ornek@kutuphane.demo"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="staff.username">Kullanıcı Adı</label><input type="text" id="sUsername" class="form-control" placeholder="ad.soyad"></div>
+          <div class="col-md-6 mb-3" id="sPasswordHolder"><label class="form-label" data-field="staff.password">Şifre * <span class="text-muted small">(en az 6 karakter)</span></label><input type="text" id="sPassword" class="form-control"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" data-field="staff.library">Kütüphane *</label><select id="sLibrary" class="form-select"></select></div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" data-field="staff.roles">Roller *</label>
+            <div id="sRolesHolder"></div>
+          </div>
+          <div class="col-12" id="extraFieldsHolder"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-navy" id="staffSaveBtn" onclick="saveNewStaff()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  if (await initAdminPage('personel', { requireLogin: true, requirePermission: 'manage_staff' })) boot();
+})();
+
+function boot() {
+  applyCoreFieldLabels();
+  const data = getData();
+  document.getElementById('sLibrary').innerHTML = '<option value="all">Tüm Kütüphaneler (Sistem Yöneticisi)</option>' +
+    data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
+  document.getElementById('sRolesHolder').innerHTML = data.roles.map(r => `
+    <div class="form-check">
+      <input class="form-check-input role-check" type="checkbox" value="${r.id}" id="role_${r.id}">
+      <label class="form-check-label small" for="role_${r.id}">${escapeHtml(r.name)}</label>
+    </div>`).join('');
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('staff', {}) + '</div>';
+  renderTable();
+}
+
+function renderTable() {
+  const data = getData();
+  document.getElementById('staffTable').innerHTML = data.staff.map(s => {
+    const roles = s.roles.map(rid => getRoleById(rid)?.name).filter(Boolean).join(', ');
+    return `<tr>
+      <td>${escapeHtml(s.name)}</td>
+      <td>${escapeHtml(s.phone)}</td>
+      <td>${escapeHtml(s.username || '—')}</td>
+      <td>${escapeHtml(libraryName(s.library))}</td>
+      <td class="small">${escapeHtml(roles)}</td>
+      <td>${s.active ? '<span class="badge bg-green">Aktif</span>' : '<span class="badge bg-secondary">Pasif</span>'}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-secondary" onclick="openEditStaffModal('${s.id}')"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-outline-navy ms-1" onclick="doResetPassword('${s.id}', '${escapeHtml(s.email || '')}')">Şifre Sıfırlama E-postası</button>
+        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="doToggleActive('${s.id}')">${s.active ? 'Pasif Yap' : 'Aktif Yap'}</button>
+        <button class="btn btn-sm btn-outline-danger ms-1" onclick="doDeleteStaff('${s.id}')"><i class="bi bi-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+let editingStaffId = null;
+
+function openAddStaffModal() {
+  editingStaffId = null;
+  document.getElementById('staffModalTitle').textContent = 'Personel Ekle';
+  document.getElementById('staffSaveBtn').textContent = 'Kaydet';
+  document.getElementById('sAddNote').classList.remove('d-none');
+  document.getElementById('sName').value = '';
+  document.getElementById('sPhone').value = '';
+  document.getElementById('sEmail').value = '';
+  document.getElementById('sEmailHolder').classList.remove('d-none');
+  document.getElementById('sUsername').value = '';
+  document.getElementById('sPassword').value = '';
+  document.getElementById('sPasswordHolder').classList.remove('d-none');
+  document.querySelectorAll('.role-check').forEach(el => el.checked = false);
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('staff', {}) + '</div>';
+}
+
+function openEditStaffModal(id) {
+  const data = getData();
+  const s = data.staff.find(x => x.id === id);
+  if (!s) return;
+  editingStaffId = id;
+  document.getElementById('staffModalTitle').textContent = 'Personel Düzenle';
+  document.getElementById('staffSaveBtn').textContent = 'Güncelle';
+  document.getElementById('sAddNote').classList.add('d-none');
+  document.getElementById('sName').value = s.name;
+  document.getElementById('sPhone').value = s.phone;
+  document.getElementById('sEmailHolder').classList.add('d-none');
+  document.getElementById('sUsername').value = s.username || '';
+  document.getElementById('sPasswordHolder').classList.add('d-none');
+  document.getElementById('sLibrary').value = s.library;
+  document.querySelectorAll('.role-check').forEach(el => { el.checked = s.roles.includes(el.value); });
+  document.getElementById('extraFieldsHolder').innerHTML = '<div class="row">' + renderExtraFieldsHtml('staff', s.extra || {}) + '</div>';
+  new bootstrap.Modal(document.getElementById('addStaffModal')).show();
+}
+
+async function saveNewStaff() {
+  const name = document.getElementById('sName').value.trim();
+  const phone = document.getElementById('sPhone').value.trim();
+  const library = document.getElementById('sLibrary').value;
+  const roles = Array.from(document.querySelectorAll('.role-check:checked')).map(el => el.value);
+  if (!name || !roles.length) { showToast('İsim ve en az bir rol zorunludur.', 'danger'); return; }
+
+  const payload = {
+    name, phone, library, roles,
+    username: document.getElementById('sUsername').value.trim() || name.toLowerCase().replace(/\s+/g, '.'),
+    extra: collectExtraFields(document.getElementById('extraFieldsHolder'))
+  };
+
+  const saveBtn = document.getElementById('staffSaveBtn');
+  saveBtn.disabled = true;
+  let res;
+  if (editingStaffId) {
+    res = await updateStaff(editingStaffId, payload);
+  } else {
+    const email = document.getElementById('sEmail').value.trim();
+    const password = document.getElementById('sPassword').value;
+    if (!email) { showToast('E-posta zorunludur.', 'danger'); saveBtn.disabled = false; return; }
+    if (!password || password.length < 6) { showToast('Şifre en az 6 karakter olmalıdır.', 'danger'); saveBtn.disabled = false; return; }
+    payload.email = email;
+    payload.password = password;
+    res = await addStaffAccount(payload);
+  }
+  saveBtn.disabled = false;
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
+  if (res.needsRelogin) {
+    showToast('Personel kaydedildi. Güvenlik nedeniyle tekrar giriş yapmanız gerekiyor.', 'success');
+    setTimeout(() => location.href = 'personel-girisi.html', 1200);
+    return;
+  }
+  showToast(editingStaffId ? 'Personel güncellendi.' : 'Personel eklendi.', 'success');
+  renderTable();
+}
+
+async function doResetPassword(id, email) {
+  if (!email) { showToast('Bu personelin e-posta adresi kayıtlı değil.', 'danger'); return; }
+  if (!confirm(`${email} adresine şifre sıfırlama bağlantısı gönderilsin mi?`)) return;
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  if (error) { showToast(error.message, 'danger'); return; }
+  showToast('Şifre sıfırlama e-postası gönderildi.', 'success');
+}
+
+async function doToggleActive(id) {
+  await toggleStaffActive(id);
+  renderTable();
+}
+
+async function doDeleteStaff(id) {
+  if (!confirm('Bu personeli silmek istediğinize emin misiniz?')) return;
+  await deleteStaff(id);
+  showToast('Personel silindi.', 'success');
+  renderTable();
+}
+</script>
+</body>
+</html>

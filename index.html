@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2a5e">
+<title>Yenişehir Kütüphaneleri - Mersin Yenişehir Belediyesi</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+
+<style>
+/* =========================================================================
+   Yenişehir Kütüphaneleri — Anasayfa yeniden tasarımı (sayfaya özel katman)
+   Bu blok yalnızca bu sayfayı etkiler; assets/style.css ve diğer sayfalar
+   değişmeden kalır. Sınıf adları mevcut inline script ile birebir uyumludur.
+   ========================================================================= */
+
+:root {
+  --ink: #0b1526;
+  --navy: #164194;
+  --navy-deep: #0d2a5e;
+  --navy-soft: #eef3fb;
+  --orange: #EF7D00;
+  --green: #3AAA35;
+  --slate-50: #f7f9fc;
+  --slate-100: #eef1f6;
+  --slate-200: #e3e8f0;
+  --slate-300: #cbd5e1;
+  --slate-500: #5b6472;
+  --slate-700: #334155;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, .06);
+  --shadow-md: 0 10px 28px rgba(13, 42, 94, .10);
+  --shadow-lg: 0 26px 56px rgba(13, 42, 94, .16);
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+}
+
+body {
+  font-family: 'Source Sans 3', "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--slate-50);
+}
+
+h1, h2, h3, h4, h5, h6,
+.section-title, .qa-title, .ev-title, .fh-title,
+.library-card-modern h5, .hero-modern h1,
+.stat-num, .stat-value, .stat-card .stat-value {
+  font-family: 'Lexend', 'Segoe UI', sans-serif;
+}
+
+/* ---------- Erişilebilirlik: atla bağlantısı + odak halkası ---------- */
+
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 1rem;
+  z-index: 2000;
+  background: var(--navy-deep);
+  color: #fff;
+  padding: .75rem 1.25rem;
+  border-radius: 0 0 10px 10px;
+  font-weight: 600;
+  transition: top .15s ease;
+}
+.skip-link:focus {
+  top: 0;
+  color: #fff;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.quick-action-card:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--navy);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.visually-hidden-focusable-hint { font-size: .78rem; color: var(--slate-500); }
+
+/* ---------- Hero (centered / masked-image pattern, "hero-09" adaptasyonu) ---------- */
+
+.hero-modern { padding-top: 4rem !important; padding-bottom: 0 !important; }
+
+.hero-center-head { max-width: 640px; }
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--navy-soft);
+  color: var(--navy-deep);
+  font-weight: 700;
+  font-size: .78rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: .45rem .9rem;
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+.hero-eyebrow i { color: var(--orange); }
+
+.hero-modern h1 {
+  font-size: clamp(2.1rem, 4vw, 3rem);
+  font-weight: 800;
+  color: var(--navy-deep);
+  line-height: 1.12;
+  letter-spacing: -.015em;
+  margin-bottom: .5rem;
+  text-wrap: balance;
+}
+.hero-modern h1 .accent {
+  color: var(--navy);
+  display: block;
+  font-weight: 600;
+  font-size: .56em;
+  margin-top: .35rem;
+}
+.hero-modern .lead-text {
+  color: var(--slate-700);
+  font-size: 1.1rem;
+  max-width: 44ch;
+  margin: 0 auto;
+}
+
+.hero-search-centered { max-width: 480px; margin-inline: auto; }
+.hero-search {
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  background: #fff;
+  border: 1px solid var(--slate-200);
+}
+.hero-search input {
+  border: none;
+  padding: .95rem 1.4rem;
+  box-shadow: none !important;
+  font-size: 1rem;
+  text-align: left;
+}
+.hero-search input:focus { background: #fff; }
+.hero-search button {
+  border-radius: 0 999px 999px 0 !important;
+  padding: 0 1.7rem;
+  background: var(--navy);
+  border-color: var(--navy);
+}
+.hero-search button:hover { background: var(--navy-deep); border-color: var(--navy-deep); }
+
+.hero-cta-row { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin-top: 1.1rem; }
+.hero-cta-row .btn { min-height: 46px; font-weight: 600; border-radius: 999px; padding-inline: 1.4rem; }
+
+.hero-stats-centered { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem 2.25rem; margin: 1.9rem auto 0; }
+.hero-stat-item { display: flex; align-items: center; gap: .7rem; }
+.icon-circle {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: var(--navy-soft); color: var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.icon-circle-lg {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: var(--navy-soft); color: var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0;
+}
+.hero-stat-item .stat-num { font-weight: 800; font-size: 1.15rem; color: var(--ink); line-height: 1.1; }
+.hero-stat-item .stat-lbl { font-size: .78rem; color: var(--slate-500); }
+
+/* Sayfaya "eriyen" görsel bandı */
+.hero-media-wrap { position: relative; }
+.hero-photo-mask {
+  position: relative;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+  min-height: 340px;
+  max-height: 460px;
+}
+.hero-photo-mask img,
+.hero-photo-fallback {
+  width: 100%; height: 100%; min-height: 340px; max-height: 460px;
+  object-fit: cover; display: block;
+  -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
+}
+.hero-photo-fallback {
+  background: linear-gradient(150deg, var(--navy) 0%, var(--navy-deep) 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-photo-fallback svg { max-height: 220px; }
+/* Görselin altı, bölümün arka planına aynı tonla karışır */
+.hero-photo-fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 55%;
+  background: linear-gradient(to bottom, transparent, var(--slate-50) 92%);
+  pointer-events: none;
+}
+
+.floating-hours-card {
+  position: absolute;
+  top: 1.1rem; right: 1.1rem;
+  left: auto; bottom: auto;
+  width: 260px;
+  background: rgba(13, 42, 94, .94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.3rem;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, .28);
+}
+.floating-hours-card .fh-title { font-weight: 700; font-size: .92rem; display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
+.floating-hours-card .fh-row { display: flex; justify-content: space-between; font-size: .8rem; padding: .32rem 0; border-bottom: 1px solid rgba(255, 255, 255, .16); }
+.floating-hours-card .fh-row:last-of-type { border-bottom: none; }
+.floating-hours-card .fh-row .lib-name { font-weight: 600; }
+.floating-hours-card .fh-row .lib-hours { color: rgba(255, 255, 255, .82); text-align: right; }
+.floating-hours-card .btn-light { font-weight: 600; border-radius: 999px; }
+
+/* Kapanış ifadesi (split statement) */
+.hero-split-statement { border-top: 1px solid var(--slate-200); padding-top: 2rem; padding-bottom: 2.5rem; margin-top: -1px; }
+.hero-split-title {
+  font-size: clamp(1.5rem, 2.2vw, 1.9rem);
+  font-weight: 700;
+  color: var(--navy-deep);
+  line-height: 1.2;
+  margin: 0;
+}
+.hero-split-title span { display: block; color: var(--slate-500); font-weight: 500; }
+.hero-split-text { color: var(--slate-700); font-size: 1rem; max-width: 52ch; margin: 0; }
+
+/* Sayfa yüklendiğinde yumuşak giriş animasyonu (subtle) */
+@keyframes heroFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.hero-anim { animation: heroFadeUp .55s ease both; }
+.hero-anim-1 { animation-delay: .02s; }
+.hero-anim-2 { animation-delay: .09s; }
+.hero-anim-3 { animation-delay: .16s; }
+.hero-anim-4 { animation-delay: .23s; }
+.hero-anim-5 { animation-delay: .3s; }
+
+@media (max-width: 767.98px) {
+  .floating-hours-card { position: static; width: 100%; margin-top: 1rem; border-radius: var(--radius-md); }
+  .hero-photo-mask, .hero-photo-mask img, .hero-photo-fallback { min-height: 240px; max-height: 300px; }
+}
+
+/* ---------- Hızlı işlem kartları ---------- */
+
+.quick-action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  height: 100%;
+  background: #fff;
+  border: 1px solid var(--slate-200);
+  border-top: 3px solid var(--navy);
+  box-shadow: var(--shadow-sm);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.quick-action-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.quick-action-card.qa-accent-orange { border-top-color: var(--orange); }
+.quick-action-card.qa-accent-green { border-top-color: var(--green); }
+.quick-action-card .qa-title { font-weight: 700; color: var(--navy-deep); font-size: .98rem; margin-bottom: .2rem; }
+.quick-action-card .qa-desc { font-size: .82rem; color: var(--slate-500); line-height: 1.4; }
+.quick-action-card .qa-arrow { margin-left: auto; color: var(--slate-300); align-self: center; transition: transform .18s ease, color .18s ease; }
+.quick-action-card:hover .qa-arrow { transform: translateX(3px); color: var(--navy); }
+
+/* ---------- Bölüm başlığı ---------- */
+
+.section-title {
+  border-left: 4px solid var(--orange);
+  padding-left: .65rem;
+  font-weight: 700;
+  color: var(--navy-deep);
+  letter-spacing: -.01em;
+}
+.section-eyebrow {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  margin-bottom: .25rem;
+}
+
+/* ---------- Kitap galerisi ---------- */
+
+.book-gallery-card { text-align: center; }
+.book-cover {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--slate-200);
+  background: #fff;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.book-gallery-card:hover .book-cover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.book-gallery-card .book-title { font-size: .85rem; font-weight: 700; margin-top: .6rem; color: var(--ink); line-height: 1.3; }
+.book-gallery-card .book-author { font-size: .76rem; color: var(--slate-500); }
+
+.bg-soft-navy { background: var(--navy-soft); }
+
+/* ---------- Kütüphane kartları ---------- */
+
+.library-card-modern {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #fff;
+  height: 100%;
+  border: 1px solid var(--slate-200);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.library-card-modern:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+.library-card-modern .photo-wrap { position: relative; height: 200px; background: linear-gradient(150deg, var(--navy), var(--navy-deep)); }
+.library-card-modern .photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.library-card-modern .photo-wrap .illustration-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.library-card-modern .num-badge {
+  position: absolute; top: .8rem; left: .8rem;
+  width: 32px; height: 32px; border-radius: 9px;
+  background: rgba(13, 42, 94, .85);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .92rem;
+}
+.library-card-modern .body { padding: 1.25rem; }
+.library-card-modern h5 { font-weight: 700; color: var(--navy-deep); }
+.library-card-modern .loc {
+  color: var(--slate-500); font-size: .84rem;
+  display: flex; align-items: center; gap: .4rem; margin-bottom: .7rem;
+}
+.library-card-modern .btn-outline-navy { border-radius: 999px; font-weight: 600; }
+
+/* ---------- Hizmetler ikon grid ---------- */
+
+.service-item { text-align: center; padding: 1.1rem .6rem; }
+.service-item .icon-circle-lg { margin: 0 auto .8rem; }
+.service-item h6 { font-size: .9rem; font-weight: 700; color: var(--navy-deep); }
+.service-item p { font-size: .78rem; color: var(--slate-500); margin-bottom: 0; }
+
+/* ---------- Etkinlik listesi ---------- */
+
+.table-responsive-card {
+  background: #fff;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+.event-list-item { display: flex; gap: 1rem; padding: .9rem 0; border-bottom: 1px solid var(--slate-100); }
+.event-list-item:last-child { border-bottom: none; }
+.event-date-badge {
+  width: 54px; height: 54px; border-radius: 12px;
+  background: var(--navy-soft); color: var(--navy);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex-shrink: 0; font-weight: 800;
+}
+.event-date-badge .day { font-size: 1.08rem; line-height: 1; }
+.event-date-badge .mon { font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; }
+.event-list-item .ev-title { font-weight: 700; font-size: .9rem; color: var(--ink); }
+.event-list-item .ev-sub { font-size: .8rem; color: var(--slate-500); }
+.event-list-item .ev-meta { font-size: .74rem; color: var(--slate-300); text-align: right; white-space: nowrap; }
+
+/* ---------- Hakkımızda ---------- */
+
+.stat-card {
+  border-top: 4px solid var(--navy);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  padding: 1.1rem 1.3rem;
+  height: 100%;
+  box-shadow: var(--shadow-sm);
+}
+.stat-card.accent { border-top-color: var(--orange); }
+.stat-card .stat-value { font-size: 1.85rem; font-weight: 800; color: var(--navy-deep); }
+.stat-card .stat-label { font-size: .85rem; color: var(--slate-500); }
+
+/* ---------- İletişim / geri bildirim ---------- */
+
+.feedback-strip {
+  background: linear-gradient(150deg, var(--navy-deep), #08203f);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 2.25rem;
+}
+.feedback-strip h4 { font-weight: 700; }
+.feedback-strip .form-label-sr { font-size: .78rem; color: rgba(255, 255, 255, .8); margin-bottom: .3rem; display: block; }
+.feedback-strip .form-control {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+}
+.feedback-strip .form-control::placeholder { color: rgba(255, 255, 255, .55); }
+.feedback-strip .form-control:focus {
+  background: rgba(255, 255, 255, .14);
+  border-color: var(--orange);
+  color: #fff;
+  box-shadow: none;
+}
+.feedback-strip .btn-orange { border-radius: 999px; font-weight: 700; min-height: 40px; padding-inline: 1.4rem; }
+#fbStatus { min-height: 1.2rem; font-size: .85rem; }
+
+@media (max-width: 767.98px) {
+  .feedback-strip { padding: 1.5rem; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+
+<main id="ana-icerik">
+
+<!-- HERO -->
+<section id="anasayfa" class="hero-modern">
+  <div class="container py-3">
+
+    <div class="hero-center-head text-center mx-auto">
+      <span class="hero-eyebrow hero-anim hero-anim-1"><i class="bi bi-bank"></i> Mersin Yenişehir Belediyesi</span>
+      <h1 class="hero-anim hero-anim-2">Bilgiye Açılan Kapınız<span class="accent">3 Kütüphane, Tek Deneyim</span></h1>
+      <p class="lead-text hero-anim hero-anim-3">Üç farklı noktada, aynı kaliteli hizmet anlayışıyla bilgiye, kültüre ve geleceğe birlikte açılıyoruz.</p>
+
+      <form class="hero-search hero-search-centered input-group mt-4 hero-anim hero-anim-4" role="search" onsubmit="event.preventDefault(); doHeroSearch();">
+        <label for="heroSearchInput" class="visually-hidden">Kitap, yazar veya konu ara</label>
+        <input type="text" id="heroSearchInput" class="form-control" placeholder="Kitap, yazar veya konu ara..." onkeydown="if(event.key==='Enter'){event.preventDefault(); doHeroSearch();}">
+        <button class="btn btn-navy" type="submit" aria-label="Ara"><i class="bi bi-search" aria-hidden="true"></i></button>
+      </form>
+
+      <div class="hero-cta-row hero-anim hero-anim-4">
+        <a href="#koleksiyon" class="btn btn-navy">Kataloğu Keşfet</a>
+        <a href="uye-basvuru.html" class="btn btn-outline-navy">Üye Ol</a>
+      </div>
+
+      <div class="hero-stats-centered hero-anim hero-anim-5" id="heroStats"></div>
+    </div>
+
+    <div class="hero-media-wrap mt-5 hero-anim hero-anim-5">
+      <div class="hero-photo-mask">
+        <img src="" id="heroPhoto" alt="Yenişehir Kütüphaneleri" onerror="this.classList.add('d-none'); document.getElementById('heroPhotoFallback').classList.remove('d-none');">
+        <div class="hero-photo-fallback d-none" id="heroPhotoFallback"></div>
+      </div>
+      <div class="hero-photo-fade" aria-hidden="true"></div>
+      <div class="floating-hours-card" id="hoursCard"></div>
+    </div>
+
+    <div class="hero-split-statement row g-4 align-items-start">
+      <div class="col-md-6">
+        <h2 class="hero-split-title">Kütüphaneler,<span>amaçla tasarlandı.</span></h2>
+      </div>
+      <div class="col-md-6">
+        <p class="hero-split-text">Sessiz çalışma alanlarından dijital kataloğa; öğrenciden emekliye her yaştan hemşehrimiz için erişilebilir ve modern bir kütüphanecilik deneyimi sunuyoruz.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- HIZLI İŞLEMLER -->
+<section class="py-4" aria-label="Hızlı işlemler">
+  <div class="container">
+    <div class="row g-3" id="quickActions"></div>
+  </div>
+</section>
+
+<!-- KOLEKSİYON -->
+<section id="koleksiyon" class="py-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+      <div>
+        <div class="section-eyebrow">Katalog</div>
+        <h3 class="section-title mb-0" id="collectionTitle">Öne Çıkan Kitaplar</h3>
+      </div>
+      <button class="btn btn-sm btn-outline-navy d-none" id="clearSearchBtn" onclick="clearHeroSearch()">Aramayı Temizle</button>
+    </div>
+    <div class="row g-3" id="featuredBooks"></div>
+  </div>
+</section>
+
+<!-- KÜTÜPHANELERİMİZ -->
+<section id="kutuphanelerimiz" class="py-5 bg-soft-navy">
+  <div class="container">
+    <div class="section-eyebrow">Şubelerimiz</div>
+    <h3 class="section-title mb-4">Kütüphanelerimiz</h3>
+    <div class="row g-4" id="libraryCards"></div>
+  </div>
+</section>
+
+<!-- HİZMETLER + ETKİNLİKLER -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-8" id="hizmetler">
+        <div class="section-eyebrow">Neler sunuyoruz</div>
+        <h3 class="section-title mb-4">Hizmetlerimiz</h3>
+        <div class="row g-3" id="servicesGrid"></div>
+      </div>
+      <div class="col-lg-4" id="etkinlikler">
+        <div class="table-responsive-card h-100">
+          <h5 class="text-navy mb-3">Yaklaşan Etkinlikler</h5>
+          <div id="eventsListModern"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HAKKIMIZDA -->
+<section id="hakkimizda" class="py-5 bg-soft-navy">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7">
+        <div class="section-eyebrow">Kim olduğumuz</div>
+        <h3 class="section-title mb-3">Hakkımızda</h3>
+        <p class="text-muted">Mersin Yenişehir Belediyesi Kütüphane Takip Sistemi, ilçemizdeki halk kütüphanelerini tek bir çatı altında buluşturarak vatandaşlarımıza modern ve erişilebilir bir kütüphanecilik hizmeti sunmayı amaçlar. Nuri Ulusu ve Ülkü Ongun Kütüphanelerimiz hâlihazırda hizmet vermekte, Leyla Kürk Kütüphanemiz ise yakında ilçemize kazandırılacaktır.</p>
+        <p class="text-muted mb-0">Kütüphanelerimiz; öğrencilerimizden emeklilerimize, her yaştan hemşehrimize ücretsiz ve herkese açık şekilde hizmet vermektedir.</p>
+      </div>
+      <div class="col-lg-5">
+        <div class="row g-3" id="aboutStats"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- İLETİŞİM -->
+<section id="iletisim" class="py-5">
+  <div class="container">
+    <div class="feedback-strip">
+      <div class="row align-items-center g-4">
+        <div class="col-md-5">
+          <h4><i class="bi bi-telephone" aria-hidden="true"></i> Bize Ulaşın</h4>
+          <p class="mb-1">Kütüphanelerimizde yaşadığınız sorunları veya iyileştirme önerilerinizi bize iletin.</p>
+          <p class="fs-4 fw-bold text-orange mb-0">444 33 54</p>
+        </div>
+        <div class="col-md-7">
+          <form class="row g-2" onsubmit="event.preventDefault(); submitFeedback();" novalidate>
+            <div class="col-md-6">
+              <label for="fbName" class="form-label-sr">Adınız Soyadınız</label>
+              <input type="text" id="fbName" class="form-control form-control-sm" placeholder="Adınız Soyadınız" required>
+            </div>
+            <div class="col-md-6">
+              <label for="fbPhone" class="form-label-sr">Telefon</label>
+              <input type="tel" id="fbPhone" class="form-control form-control-sm" placeholder="Telefon">
+            </div>
+            <div class="col-12">
+              <label for="fbMessage" class="form-label-sr">Sorun veya öneriniz</label>
+              <textarea id="fbMessage" class="form-control form-control-sm" rows="2" placeholder="Sorun veya öneriniz..." required></textarea>
+            </div>
+            <div class="col-12 d-flex align-items-center gap-3">
+              <button type="submit" class="btn btn-orange btn-sm">Gönder</button>
+              <span id="fbStatus" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div id="app-footer"></div>
+
+<!-- Kütüphane Detay Modal -->
+<div class="modal fade" id="libraryDetailModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy" id="libModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body" id="libModalBody"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+const LIBRARY_PHOTOS = {
+  lib1: 'https://commons.wikimedia.org/wiki/Special:FilePath/OU_Great_Reading_Room.jpg?width=1400',
+  lib2: 'https://commons.wikimedia.org/wiki/Special:FilePath/Reading_room_in_Rush_Rhees_library_at_the_University_of_Rochester.jpg?width=1400',
+  lib3: 'https://commons.wikimedia.org/wiki/Special:FilePath/Seattle_Central_Library.jpg?width=1400'
+};
+
+const ILLUSTRATIONS = {
+  lib1: `<svg viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" style="max-height:200px;">
+    <rect x="30" y="150" width="90" height="16" rx="3" fill="#EF7D00"/>
+    <rect x="30" y="60" width="90" height="85" rx="4" fill="none" stroke="#fff" stroke-width="3"/>
+    <rect x="40" y="72" width="70" height="10" fill="#3AAA35"/>
+    <rect x="40" y="90" width="70" height="10" fill="#EF7D00"/>
+    <rect x="40" y="108" width="70" height="10" fill="#fff" opacity=".7"/>
+    <rect x="40" y="126" width="70" height="10" fill="#3AAA35"/>
+    <circle cx="210" cy="110" r="55" fill="none" stroke="#fff" stroke-width="3"/>
+    <path d="M185 120 q25 -30 50 0" fill="none" stroke="#EF7D00" stroke-width="4" stroke-linecap="round"/>
+    <rect x="180" y="120" width="60" height="6" fill="#fff"/>
+    <line x1="150" y1="190" x2="260" y2="190" stroke="#fff" stroke-width="3"/>
+  </svg>`,
+  lib2: `<svg viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" style="max-height:200px;">
+    <rect x="70" y="70" width="140" height="90" rx="6" fill="none" stroke="#fff" stroke-width="3"/>
+    <rect x="85" y="85" width="110" height="60" fill="#164194" stroke="#3AAA35" stroke-width="2"/>
+    <rect x="55" y="160" width="170" height="10" rx="3" fill="#fff"/>
+    <path d="M120 45 a30 30 0 0 1 60 0" fill="none" stroke="#EF7D00" stroke-width="4" stroke-linecap="round"/>
+    <path d="M135 55 a15 15 0 0 1 30 0" fill="none" stroke="#EF7D00" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="150" cy="65" r="4" fill="#EF7D00"/>
+  </svg>`,
+  lib3: `<svg viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" style="max-height:200px;">
+    <rect x="90" y="90" width="90" height="90" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="6 5"/>
+    <line x1="90" y1="115" x2="180" y2="115" stroke="#fff" stroke-width="2" stroke-dasharray="4 4"/>
+    <line x1="90" y1="145" x2="180" y2="145" stroke="#fff" stroke-width="2" stroke-dasharray="4 4"/>
+    <line x1="220" y1="40" x2="220" y2="150" stroke="#EF7D00" stroke-width="4"/>
+    <line x1="220" y1="45" x2="260" y2="45" stroke="#EF7D00" stroke-width="4"/>
+    <line x1="255" y1="45" x2="255" y2="80" stroke="#EF7D00" stroke-width="3"/>
+    <rect x="60" y="180" width="180" height="8" fill="#fff"/>
+    <circle cx="70" cy="175" r="10" fill="#3AAA35"/>
+  </svg>`,
+  default: `<svg viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" style="max-height:200px;">
+    <rect x="70" y="60" width="160" height="120" rx="4" fill="none" stroke="#fff" stroke-width="3"/>
+    <rect x="90" y="80" width="30" height="40" fill="#3AAA35"/>
+    <rect x="135" y="80" width="30" height="40" fill="#EF7D00"/>
+    <rect x="180" y="80" width="30" height="40" fill="#fff" opacity=".7"/>
+    <rect x="90" y="135" width="120" height="12" fill="#fff"/>
+    <rect x="50" y="180" width="200" height="8" rx="2" fill="#fff"/>
+  </svg>`
+};
+
+const LIBRARY_DESCRIPTIONS = {
+  lib1: 'Geniş koleksiyonu, sessiz çalışma alanları ve teknolojik imkanlarıyla hizmetinizde.',
+  lib2: 'Ferah çalışma alanları ve zengin kaynaklarıyla hizmetinizde.',
+  lib3: "Yenişehir'in üçüncü kütüphanesi kısa süre içinde hizmetinizde olacak."
+};
+
+const MONTHS_TR = ['OCA', 'ŞUB', 'MAR', 'NİS', 'MAY', 'HAZ', 'TEM', 'AĞU', 'EYL', 'EKİ', 'KAS', 'ARA'];
+
+/* ---------- Hero ---------- */
+
+/* Ana sayfa hero görseli: assets/wall_hero.* — uzantı ileride değişirse (webp/jpg/png)
+   diye sırayla dener; hiçbiri yüklenemezse gradyan + illüstrasyona düşer. */
+const HERO_PHOTO_CANDIDATES = [
+  'assets/wall_hero.avif',
+  'assets/wall_hero.webp',
+  'assets/wall_hero.jpg',
+  'assets/wall_hero.jpeg',
+  'assets/wall_hero.png'
+];
+
+function loadHeroPhoto(candidates, i) {
+  i = i || 0;
+  const imgEl = document.getElementById('heroPhoto');
+  const fallbackEl = document.getElementById('heroPhotoFallback');
+  if (i >= candidates.length) {
+    imgEl.classList.add('d-none');
+    fallbackEl.classList.remove('d-none');
+    return;
+  }
+  const probe = new Image();
+  probe.onload = () => {
+    imgEl.src = candidates[i];
+    imgEl.classList.remove('d-none');
+    fallbackEl.classList.add('d-none');
+  };
+  probe.onerror = () => loadHeroPhoto(candidates, i + 1);
+  probe.src = candidates[i];
+}
+
+function renderHero() {
+  const data = getData();
+  loadHeroPhoto(HERO_PHOTO_CANDIDATES);
+  document.getElementById('heroPhotoFallback').innerHTML = ILLUSTRATIONS.lib1;
+
+  const totalCopies = data.books.reduce((s, b) => s + b.total, 0);
+  const stats = [
+    { icon: 'bi-book', num: totalCopies.toLocaleString('tr-TR'), lbl: 'Kitap' },
+    { icon: 'bi-people', num: data.users.length.toLocaleString('tr-TR'), lbl: 'Üye' },
+    { icon: 'bi-building', num: data.libraries.length, lbl: 'Kütüphane' },
+    { icon: 'bi-calendar-event', num: data.events.length, lbl: 'Etkinlik' }
+  ];
+  document.getElementById('heroStats').innerHTML = stats.map(s => `
+    <div class="hero-stat-item">
+      <div class="icon-circle" aria-hidden="true"><i class="bi ${s.icon}"></i></div>
+      <div><div class="stat-num">${s.num}+</div><div class="stat-lbl">${s.lbl}</div></div>
+    </div>`).join('');
+
+  document.getElementById('hoursCard').innerHTML = `
+    <div class="fh-title"><i class="bi bi-clock" aria-hidden="true"></i> Çalışma Saatleri</div>
+    ${data.libraries.map(l => `
+      <div class="fh-row">
+        <span class="lib-name">${escapeHtml(l.name.replace(' Kütüphanesi', ''))}</span>
+        <span class="lib-hours">${escapeHtml(l.weekday)}</span>
+      </div>`).join('')}
+    <a href="#kutuphanelerimiz" class="btn btn-light btn-sm w-100 mt-2">Tüm Saatleri Gör</a>
+  `;
+}
+
+/* ---------- Hızlı İşlemler ---------- */
+
+function renderQuickActions() {
+  const actions = [
+    { href: '#koleksiyon', icon: 'bi-search', title: 'Katalog Tarama', desc: 'Kütüphane kataloğuna arama yapın', accent: '' },
+    { href: 'uye-basvuru.html', icon: 'bi-person-plus', title: 'Üyelik İşlemleri', desc: 'Üyelik başvurunuzu tamamlayın', accent: 'qa-accent-orange' },
+    { href: 'uye-girisi.html', icon: 'bi-person-check', title: 'Üye Portalım', desc: 'Ödünçlerinizi görüntüleyin', accent: 'qa-accent-green' },
+    { href: '#etkinlikler', icon: 'bi-calendar-event', title: 'Etkinlik Takvimi', desc: 'Yaklaşan etkinlikleri inceleyin', accent: '' }
+  ];
+  document.getElementById('quickActions').innerHTML = actions.map(a => `
+    <div class="col-6 col-lg-3">
+      <a href="${a.href}" class="quick-action-card text-decoration-none ${a.accent}">
+        <div class="icon-circle-lg" aria-hidden="true"><i class="bi ${a.icon}"></i></div>
+        <div>
+          <div class="qa-title">${a.title}</div>
+          <div class="qa-desc">${a.desc}</div>
+        </div>
+        <i class="bi bi-arrow-right qa-arrow d-none d-lg-inline" aria-hidden="true"></i>
+      </a>
+    </div>`).join('');
+}
+
+/* ---------- Koleksiyon / Arama ---------- */
+
+function renderFeaturedBooks(query) {
+  const data = getData();
+  let list, title;
+  if (query) {
+    const q = query.toLowerCase();
+    list = data.books.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)).slice(0, 12);
+    title = `Arama Sonuçları — "${query}" (${list.length} kayıt)`;
+    document.getElementById('clearSearchBtn').classList.remove('d-none');
+  } else {
+    const pool = data.books.filter(b => b.stock >= 0);
+    list = [...pool].sort(() => Math.random() - 0.5).slice(0, 8);
+    title = 'Öne Çıkan Kitaplar';
+    document.getElementById('clearSearchBtn').classList.add('d-none');
+  }
+  document.getElementById('collectionTitle').textContent = title;
+  document.getElementById('featuredBooks').innerHTML = list.map((b, i) => `
+    <div class="col-6 col-md-3 col-lg-3">
+      <div class="book-gallery-card">
+        <img src="${bookCover(b)}" class="book-cover" id="cover-${i}" alt="${escapeHtml(b.title)} kitap kapağı" loading="lazy">
+        <div class="book-title">${escapeHtml(b.title)}</div>
+        <div class="book-author">${escapeHtml(b.author)}</div>
+        <div class="small text-muted">${escapeHtml(libraryName(b.library))}</div>
+      </div>
+    </div>`).join('') || '<p class="text-muted">Sonuç bulunamadı.</p>';
+
+  // Open Library üzerinden gerçek kapak görseli ile aşamalı iyileştirme (bulunan kapak kalıcı kaydedilir)
+  list.forEach(async (b, i) => {
+    if (b.coverUrl) return;
+    const results = await searchBookCovers(`${b.title} ${b.author}`);
+    if (results && results.length) {
+      await setBookCover(b.id, results[0].thumbnail);
+      const img = document.getElementById(`cover-${i}`);
+      if (img) img.src = results[0].thumbnail;
+    }
+  });
+}
+
+function doHeroSearch() {
+  const q = document.getElementById('heroSearchInput').value.trim();
+  if (!q) return;
+  renderFeaturedBooks(q);
+  document.getElementById('koleksiyon').scrollIntoView({ behavior: 'smooth' });
+}
+function clearHeroSearch() {
+  document.getElementById('heroSearchInput').value = '';
+  renderFeaturedBooks();
+}
+
+/* ---------- Kütüphanelerimiz ---------- */
+
+function renderLibraryCards() {
+  const data = getData();
+  document.getElementById('libraryCards').innerHTML = data.libraries.map((lib, i) => {
+    const photo = lib.photoUrl || LIBRARY_PHOTOS[lib.id];
+    const badge = lib.status === 'soon'
+      ? '<span class="badge bg-orange">Yakında Açılıyor</span>'
+      : '<span class="badge bg-green">Hizmette</span>';
+    const photoHtml = photo
+      ? `<img src="${photo}" alt="${escapeHtml(lib.name)}" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+         <div class="illustration-fallback d-none">${ILLUSTRATIONS[lib.id] || ILLUSTRATIONS.default}</div>`
+      : `<div class="illustration-fallback">${ILLUSTRATIONS[lib.id] || ILLUSTRATIONS.default}</div>`;
+    return `<div class="col-md-4">
+      <div class="library-card-modern">
+        <div class="photo-wrap">
+          <span class="num-badge" aria-hidden="true">${i + 1}</span>
+          ${photoHtml}
+        </div>
+        <div class="body">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h5 class="mb-0">${escapeHtml(lib.name)}</h5>
+          </div>
+          <div class="mb-2">${badge}</div>
+          <div class="loc"><i class="bi bi-geo-alt" aria-hidden="true"></i> ${escapeHtml(lib.address)}</div>
+          <p class="small text-muted">${escapeHtml(LIBRARY_DESCRIPTIONS[lib.id] || `${lib.name} kütüphanemiz siz değerli okuyucularımıza hizmet vermektedir.`)}</p>
+          <button class="btn btn-outline-navy btn-sm" onclick="openLibraryModal('${lib.id}')">Detayları Gör</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openLibraryModal(id) {
+  const data = getData();
+  const lib = data.libraries.find(l => l.id === id);
+  if (!lib) return;
+  document.getElementById('libModalTitle').textContent = lib.name;
+  document.getElementById('libModalBody').innerHTML = `
+    <p class="mb-2"><i class="bi bi-geo-alt text-navy" aria-hidden="true"></i> ${escapeHtml(lib.address)}</p>
+    ${lib.phone ? `<p class="mb-2"><i class="bi bi-telephone text-navy" aria-hidden="true"></i> ${escapeHtml(lib.phone)}</p>` : ''}
+    <p class="mb-1"><i class="bi bi-clock text-navy" aria-hidden="true"></i> Hafta İçi: ${escapeHtml(lib.weekday)}</p>
+    <p class="mb-1"><i class="bi bi-clock text-navy" aria-hidden="true"></i> Hafta Sonu: ${escapeHtml(lib.weekend)}</p>
+    <p class="mt-3">${escapeHtml(LIBRARY_DESCRIPTIONS[lib.id] || `${lib.name} kütüphanemiz siz değerli okuyucularımıza hizmet vermektedir.`)}</p>
+  `;
+  new bootstrap.Modal(document.getElementById('libraryDetailModal')).show();
+}
+
+/* ---------- Hizmetlerimiz ---------- */
+
+function renderServices() {
+  const services = [
+    { icon: 'bi-wifi', title: 'Ücretsiz Wi-Fi', desc: 'Tüm kütüphanelerimizde ücretsiz internet' },
+    { icon: 'bi-cup-hot', title: 'Çalışma Alanları', desc: 'Sessiz ve konforlu çalışma alanları' },
+    { icon: 'bi-people', title: 'Grup Çalışma Odaları', desc: 'Gruplar için özel çalışma odaları' },
+    { icon: 'bi-universal-access', title: 'Erişilebilir Hizmetler', desc: 'Herkes için erişilebilir kütüphane hizmetleri' },
+    { icon: 'bi-question-circle', title: 'Danışma Hizmeti', desc: 'Sorularınız için her zaman yanınızdayız' }
+  ];
+  document.getElementById('servicesGrid').innerHTML = services.map(s => `
+    <div class="col-6 col-md-4">
+      <div class="service-item">
+        <div class="icon-circle-lg" aria-hidden="true"><i class="bi ${s.icon}"></i></div>
+        <h6>${s.title}</h6>
+        <p>${s.desc}</p>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- Etkinlikler ---------- */
+
+function renderEventsModern() {
+  const data = getData();
+  const events = [...data.events].sort((a, c) => new Date(a.date) - new Date(c.date));
+  document.getElementById('eventsListModern').innerHTML = events.map(e => {
+    const d = new Date(e.date);
+    return `<div class="event-list-item">
+      <div class="event-date-badge" aria-hidden="true"><span class="day">${d.getDate()}</span><span class="mon">${MONTHS_TR[d.getMonth()]}</span></div>
+      <div class="flex-grow-1">
+        <div class="ev-title">${escapeHtml(e.title)}</div>
+        <div class="ev-sub">${escapeHtml(e.desc || '')}</div>
+      </div>
+      <div class="ev-meta">${escapeHtml(libraryName(e.library).replace(' Kütüphanesi', ''))}</div>
+    </div>`;
+  }).join('') || '<p class="text-muted small">Şu anda planlanmış bir etkinlik yok.</p>';
+}
+
+/* ---------- Hakkımızda istatistik rozetleri ---------- */
+
+function renderAboutStats() {
+  const data = getData();
+  const items = [
+    { num: data.libraries.filter(l => l.status === 'active').length, lbl: 'Aktif Kütüphane' },
+    { num: data.libraries.filter(l => l.status === 'soon').length, lbl: 'Yakında Açılacak' },
+    { num: data.categories.length, lbl: 'Kategori' },
+    { num: data.events.length, lbl: 'Planlanan Etkinlik' }
+  ];
+  document.getElementById('aboutStats').innerHTML = items.map(i => `
+    <div class="col-6">
+      <div class="stat-card text-center h-100">
+        <div class="stat-value">${i.num}</div>
+        <div class="stat-label">${i.lbl}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- Geri bildirim ---------- */
+
+async function submitFeedback() {
+  const name = document.getElementById('fbName').value.trim();
+  const phone = document.getElementById('fbPhone').value.trim();
+  const message = document.getElementById('fbMessage').value.trim();
+  const statusEl = document.getElementById('fbStatus');
+  if (!name || !message) {
+    statusEl.textContent = 'İsim ve mesaj alanları zorunludur.';
+    statusEl.className = 'text-warning-emphasis';
+    showToast('İsim ve mesaj alanları zorunludur.', 'danger');
+    return;
+  }
+  await addFeedback({ name, phone, message });
+  document.getElementById('fbName').value = '';
+  document.getElementById('fbPhone').value = '';
+  document.getElementById('fbMessage').value = '';
+  statusEl.textContent = 'Geri bildiriminiz alınmıştır. Teşekkür ederiz.';
+  statusEl.className = 'text-white';
+  showToast('Geri bildiriminiz alınmıştır. Teşekkür ederiz.', 'success');
+}
+
+(async () => {
+  await initPublicPage();
+  renderPublicNavbar('anasayfa');
+  renderPublicFooter();
+  renderHero();
+  renderQuickActions();
+  renderFeaturedBooks();
+  renderLibraryCards();
+  renderServices();
+  renderEventsModern();
+  renderAboutStats();
+})();
+</script>
+</body>
+</html>

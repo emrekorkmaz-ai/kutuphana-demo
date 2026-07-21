@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personel Girişi - Yenişehir Kütüphane Sistemi</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="skip-link" href="#ana-icerik">İçeriğe geç</a>
+<div id="app-navbar"></div>
+<a id="ana-icerik"></a>
+
+<div class="container py-5" style="max-width:480px;">
+  <div class="text-center mb-4">
+    <h2 class="text-navy fw-bold">Personel Girişi</h2>
+    <p class="text-muted">Yönetim paneline erişmek için e-posta ve şifrenizi girin.</p>
+  </div>
+
+  <div class="card p-4">
+    <div class="mb-3">
+      <label class="form-label">E-posta</label>
+      <input type="email" id="emailInput" class="form-control" placeholder="ornek@kutuphane.demo">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Şifre</label>
+      <input type="password" id="passwordInput" class="form-control">
+    </div>
+    <button class="btn btn-navy w-100" id="loginBtn" onclick="submitLogin()">Giriş Yap</button>
+  </div>
+
+  <div class="text-center mt-4">
+    <a href="index.html" class="text-muted small">&larr; Halka Açık Ana Sayfaya Dön</a>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  await initPublicPage();
+  renderAdminNavbar('personel-girisi');
+  if (getCurrentStaff()) location.href = 'panel.html';
+})();
+
+async function submitLogin() {
+  const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
+  if (!email || !password) { showToast('E-posta ve şifre zorunludur.', 'danger'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  const res = await staffLogin(email, password);
+  btn.disabled = false;
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Giriş başarılı. Yönlendiriliyorsunuz...', 'success');
+  setTimeout(() => location.href = 'panel.html', 500);
+}
+</script>
+</body>
+</html>
