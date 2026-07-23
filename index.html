@@ -599,10 +599,12 @@ textarea:focus-visible,
 <script src="assets/supabase-config.js"></script>
 <script src="assets/app.js"></script>
 <script>
+/* Kütüphane fotoğrafı Site Yönetimi'nden yüklenmemişse (lib.photoUrl boşsa)
+   kullanılan varsayılan görseller — kütüphane id'sine göre eşleşir. */
 const LIBRARY_PHOTOS = {
-  lib1: 'https://commons.wikimedia.org/wiki/Special:FilePath/OU_Great_Reading_Room.jpg?width=1400',
-  lib2: 'https://commons.wikimedia.org/wiki/Special:FilePath/Reading_room_in_Rush_Rhees_library_at_the_University_of_Rochester.jpg?width=1400',
-  lib3: 'https://commons.wikimedia.org/wiki/Special:FilePath/Seattle_Central_Library.jpg?width=1400'
+  '8f677a29-5216-4476-bd20-c10c9ef6f1eb': 'assets/library-nuri-ulusu-default.png',
+  'cdf14bb9-f784-4df5-843e-2cc9c4ec8c17': 'assets/library-ulku-ongun-default.png',
+  'd86cddd7-5211-48e1-9230-8c349484df71': 'assets/library-leyla-kurk-default.png'
 };
 
 const ILLUSTRATIONS = {
