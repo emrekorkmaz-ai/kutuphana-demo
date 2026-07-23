@@ -121,7 +121,7 @@ function buildTabsAndPanes(admin, data) {
       <div id="allOverview" class="mb-4"></div>
       <div class="card p-3 mb-3">
         <h6 class="text-navy">Kütüphaneye Göre Kitap Dağılımı</h6>
-        <canvas id="compareChart" height="90"></canvas>
+        <div style="height:280px;"><canvas id="compareChart"></canvas></div>
       </div>
       <div class="table-responsive-card">
         <div class="table-responsive">
@@ -187,7 +187,7 @@ function libraryPaneTemplate(prefix) {
 
     <div class="card p-3 mb-3">
       <h6 class="text-navy">Kategoriye Göre Stok Durumu</h6>
-      <canvas id="${prefix}CatChart" height="90"></canvas>
+      <div style="height:260px;"><canvas id="${prefix}CatChart"></canvas></div>
     </div>
 
     <div class="table-responsive-card mb-3">
@@ -332,7 +332,7 @@ function renderOverviewBlock(prefix, scope) {
         <h6 class="text-navy mb-0">Gün Gün Ödünç Verilen Kitap Sayısı</h6>
         ${modeSel}
       </div>
-      <canvas id="${prefix}TrendChart" height="80"></canvas>
+      <div style="height:240px;"><canvas id="${prefix}TrendChart"></canvas></div>
     </div>`;
 
   if (detailOpen) renderOverviewDetail(prefix);
@@ -456,7 +456,14 @@ function renderTrendChart(prefix, scope) {
   chartInstances[prefix].trend = new Chart(document.getElementById(prefix + 'TrendChart'), {
     type: 'bar',
     data: { labels, datasets: [{ label: 'Ödünç Verilen Kitap', data: counts, backgroundColor: '#164194', borderRadius: 4, maxBarThickness: 34 }] },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(11,21,38,.06)' } },
+        x: { grid: { display: false } }
+      }
+    }
   });
 }
 
@@ -531,8 +538,15 @@ function renderLibraryPane(prefix) {
   if (chartInstances[prefix].category) chartInstances[prefix].category.destroy();
   chartInstances[prefix].category = new Chart(document.getElementById(prefix + 'CatChart'), {
     type: 'bar',
-    data: { labels: Object.keys(catTotals), datasets: [{ label: 'Boşta Nüsha', data: Object.values(catTotals), backgroundColor: '#164194' }] },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    data: { labels: Object.keys(catTotals), datasets: [{ label: 'Boşta Nüsha', data: Object.values(catTotals), backgroundColor: '#164194', borderRadius: 4, maxBarThickness: 48 }] },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(11,21,38,.06)' } },
+        x: { grid: { display: false } }
+      }
+    }
   });
 
   // Sıralı listeler (tüm kayıtlar üzerinden, filtre olmadan — kütüphane bazlı)
@@ -595,11 +609,18 @@ function renderCompareTab() {
     data: {
       labels: data.libraries.map(l => l.name),
       datasets: [
-        { label: 'Toplam Nüsha', data: data.libraries.map(l => data.books.filter(b => b.library === l.id).reduce((s, b) => s + b.total, 0)), backgroundColor: '#164194' },
-        { label: 'Boşta Nüsha', data: data.libraries.map(l => data.books.filter(b => b.library === l.id).reduce((s, b) => s + b.stock, 0)), backgroundColor: '#3AAA35' }
+        { label: 'Toplam Nüsha', data: data.libraries.map(l => data.books.filter(b => b.library === l.id).reduce((s, b) => s + b.total, 0)), backgroundColor: '#164194', borderRadius: 4, maxBarThickness: 56 },
+        { label: 'Boşta Nüsha', data: data.libraries.map(l => data.books.filter(b => b.library === l.id).reduce((s, b) => s + b.stock, 0)), backgroundColor: '#3AAA35', borderRadius: 4, maxBarThickness: 56 }
       ]
     },
-    options: { scales: { y: { beginAtZero: true } } }
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', align: 'start', labels: { boxWidth: 14, usePointStyle: true, pointStyle: 'circle' } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(11,21,38,.06)' } },
+        x: { grid: { display: false } }
+      }
+    }
   });
 }
 
