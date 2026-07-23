@@ -73,6 +73,7 @@
    Durum
    ------------------------------------------------------------------------- */
 let compareChartInstance = null;
+let categoryPieChartInstance = null;
 const chartInstances = {};       // prefix -> { category: Chart, trend: Chart }
 const rankingsByPrefix = {};     // prefix -> { books: [...], users: [...], overdue: [...] }
 const rankExpandState = {};      // "prefix:key" -> bool
@@ -96,6 +97,7 @@ function boot() {
     document.getElementById('aLibrary').innerHTML += data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
     renderOverviewBlock('all', 'ALL');
     renderCompareTab();
+    renderCategoryPieChart();
     renderAuditTab();
     data.libraries.forEach(lib => {
       const prefix = 'lib_' + lib.id;
@@ -135,6 +137,10 @@ function buildTabsAndPanes(admin, data) {
         <h6 class="text-navy">Kütüphaneye Göre Kitap Dağılımı</h6>
         <div style="height:280px;"><canvas id="compareChart"></canvas></div>
       </div>
+      <div class="card p-3 mb-3">
+        <h6 class="text-navy">Kategorilere Göre Nüsha Dağılımı</h6>
+        <div style="height:320px;"><canvas id="categoryPieChart"></canvas></div>
+      </div>
       <div class="table-responsive-card">
         <div class="table-responsive">
           <table class="table align-middle">
@@ -172,6 +178,7 @@ function switchTab(key) {
       if (charts.category) charts.category.resize();
     }
     if (key === 'all' && compareChartInstance) compareChartInstance.resize();
+    if (key === 'all' && categoryPieChartInstance) categoryPieChartInstance.resize();
   });
 }
 
@@ -644,6 +651,37 @@ function renderCompareTab() {
       scales: {
         y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(11,21,38,.06)' } },
         x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+const CATEGORY_CHART_COLORS = ['#164194', '#3AAA35', '#EF7D00', '#5B7FBD', '#C9622A', '#2C7A6B', '#8A5A12', '#7C4DBE', '#C4457A', '#5B6472'];
+
+/* Tüm kütüphaneler genelinde, kategorilere göre toplam nüsha dağılımı */
+function renderCategoryPieChart() {
+  const data = getData();
+  const catTotals = {};
+  data.books.forEach(b => {
+    (Array.isArray(b.category) ? b.category : [b.category]).forEach(cid => {
+      const name = categoryName(cid) || 'Diğer';
+      catTotals[name] = (catTotals[name] || 0) + b.total;
+    });
+  });
+  const entries = Object.entries(catTotals).sort((a, c) => c[1] - a[1]);
+
+  if (categoryPieChartInstance) categoryPieChartInstance.destroy();
+  categoryPieChartInstance = new Chart(document.getElementById('categoryPieChart'), {
+    type: 'pie',
+    data: {
+      labels: entries.map(([name]) => name),
+      datasets: [{ data: entries.map(([, val]) => val), backgroundColor: entries.map((_, i) => CATEGORY_CHART_COLORS[i % CATEGORY_CHART_COLORS.length]), borderColor: '#fff', borderWidth: 2 }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 14, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed} nüsha` } }
       }
     }
   });
