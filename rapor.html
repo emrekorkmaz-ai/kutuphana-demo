@@ -307,7 +307,13 @@ function computeOverviewStats(scope) {
   const active = rentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays === 0);
   const overdue = rentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0);
   const returned = rentals.filter(r => r.returnDate);
-  const pendingLost = rentals.filter(r => !r.returnDate && r.lost);
+  // "İmha onayı bekleyen": kayıp bildirilmiş ama bağlı imha talebi henüz onaylanmamış
+  // (onaylanmış olan zaten kalıcı olarak imha edilmiştir, "bekleyen" sayılmaz).
+  const pendingLost = rentals.filter(r => {
+    if (r.returnDate || !r.lost) return false;
+    const rec = data.retirements.find(x => x.rentalId === r.id);
+    return !rec || rec.status === 'pending';
+  });
   const totalCopies = books.reduce((s, b) => s + b.total, 0);
   return { books, members, rentals, active, overdue, returned, pendingLost, totalCopies };
 }
@@ -683,7 +689,11 @@ function renderCompareTab() {
     const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === lib.id; });
     const active = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays === 0).length;
     const overdue = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0).length;
-    const pendingLost = libRentals.filter(r => !r.returnDate && r.lost).length;
+    const pendingLost = libRentals.filter(r => {
+      if (r.returnDate || !r.lost) return false;
+      const rec = data.retirements.find(x => x.rentalId === r.id);
+      return !rec || rec.status === 'pending';
+    }).length;
     const catSet = new Set();
     libBooks.forEach(b => { (Array.isArray(b.category) ? b.category : [b.category]).forEach(c => { if (c) catSet.add(c); }); });
     return `<tr>
