@@ -80,6 +80,7 @@ const rankExpandState = {};      // "prefix:key" -> bool
 const paneLibraryId = {};        // prefix -> libId (bu panonun ait olduğu kütüphane)
 const overviewExpandState = {};  // prefix -> key|null (hangi kart genişletilmiş)
 const overviewTrendMode = {};    // prefix -> 'daily' | 'weekday'
+const overviewTrendRange = {};   // prefix -> { start, end } | undefined (özel tarih aralığı)
 const overviewSearch = {};       // prefix -> arama metni
 const overviewSort = {};         // prefix -> null | 'total_desc'
 const overviewScope = {};        // prefix -> scope (libId ya da 'ALL')
@@ -353,6 +354,12 @@ function renderOverviewBlock(prefix, scope) {
         <h6 class="text-navy mb-0">Gün Gün Ödünç Verilen Kitap Sayısı</h6>
         ${modeSel}
       </div>
+      <div class="d-flex align-items-end gap-2 flex-wrap mb-3">
+        <div><label class="form-label small mb-0">Başlangıç</label><input type="date" id="${prefix}TrendStart" class="form-control form-control-sm" value="${(overviewTrendRange[prefix] && overviewTrendRange[prefix].start) || ''}"></div>
+        <div><label class="form-label small mb-0">Bitiş</label><input type="date" id="${prefix}TrendEnd" class="form-control form-control-sm" value="${(overviewTrendRange[prefix] && overviewTrendRange[prefix].end) || ''}"></div>
+        <button class="btn btn-sm btn-navy" onclick="applyTrendRange('${prefix}')">Uygula</button>
+        <button class="btn btn-sm btn-outline-secondary ${overviewTrendRange[prefix] ? '' : 'd-none'}" id="${prefix}TrendClearBtn" onclick="clearTrendRange('${prefix}')">Temizle</button>
+      </div>
       <div style="height:240px;"><canvas id="${prefix}TrendChart"></canvas></div>
     </div>`;
 
@@ -447,12 +454,37 @@ function setTrendMode(prefix, mode) {
   renderTrendChart(prefix, overviewScope[prefix]);
 }
 
+function applyTrendRange(prefix) {
+  const start = document.getElementById(prefix + 'TrendStart').value;
+  const end = document.getElementById(prefix + 'TrendEnd').value;
+  if (!start || !end) { showToast('Başlangıç ve bitiş tarihi seçmelisiniz.', 'danger'); return; }
+  if (start > end) { showToast('Başlangıç tarihi bitiş tarihinden sonra olamaz.', 'danger'); return; }
+  const dayCount = Math.round((new Date(end) - new Date(start)) / 86400000) + 1;
+  if (dayCount > 366) { showToast('En fazla 366 günlük bir aralık seçebilirsiniz.', 'danger'); return; }
+  overviewTrendRange[prefix] = { start, end };
+  const clearBtn = document.getElementById(prefix + 'TrendClearBtn');
+  if (clearBtn) clearBtn.classList.remove('d-none');
+  renderTrendChart(prefix, overviewScope[prefix]);
+}
+
+function clearTrendRange(prefix) {
+  delete overviewTrendRange[prefix];
+  document.getElementById(prefix + 'TrendStart').value = '';
+  document.getElementById(prefix + 'TrendEnd').value = '';
+  const clearBtn = document.getElementById(prefix + 'TrendClearBtn');
+  if (clearBtn) clearBtn.classList.add('d-none');
+  renderTrendChart(prefix, overviewScope[prefix]);
+}
+
 function renderTrendChart(prefix, scope) {
   const data = getData();
-  const rentals = data.rentals.filter(r => {
+  let rentals = data.rentals.filter(r => {
     const book = data.books.find(b => b.id === r.bookId);
     return book && (scope === 'ALL' || book.library === scope);
   });
+
+  const range = overviewTrendRange[prefix];
+  if (range) rentals = rentals.filter(r => r.rentalDate >= range.start && r.rentalDate <= range.end);
 
   let labels, counts;
   if ((overviewTrendMode[prefix] || 'daily') === 'weekday') {
@@ -463,13 +495,22 @@ function renderTrendChart(prefix, scope) {
     labels = order.map(i => dayNames[i]);
     counts = order.map(i => totals[i]);
   } else {
-    const days = 30;
-    const today = new Date();
     const buckets = {};
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      buckets[d.toISOString().slice(0, 10)] = 0;
+    if (range) {
+      const cursor = new Date(range.start);
+      const endD = new Date(range.end);
+      while (cursor <= endD) {
+        buckets[cursor.toISOString().slice(0, 10)] = 0;
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    } else {
+      const days = 30;
+      const today = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        buckets[d.toISOString().slice(0, 10)] = 0;
+      }
     }
     rentals.forEach(r => { if (r.rentalDate in buckets) buckets[r.rentalDate]++; });
     labels = Object.keys(buckets).map(k => formatDateTR(k).slice(0, 5));
