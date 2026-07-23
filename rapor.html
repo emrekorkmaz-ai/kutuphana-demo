@@ -138,7 +138,7 @@ function buildTabsAndPanes(admin, data) {
       <div class="table-responsive-card">
         <div class="table-responsive">
           <table class="table align-middle">
-            <thead><tr><th>Kütüphane</th><th>Kategori Sayısı</th><th>Farklı Kitap Sayısı</th><th>Toplam Nüsha</th><th>Boşta Nüsha</th><th>Üye Sayısı</th><th>Aktif Ödünç</th><th>Gecikmiş</th></tr></thead>
+            <thead><tr><th>Kütüphane</th><th>Kategori Sayısı</th><th>Farklı Kitap Sayısı</th><th>Toplam Nüsha</th><th>Boşta Nüsha</th><th>Üye Sayısı</th><th>Aktif Ödünç</th><th>Gecikmiş</th><th>İmha Onayı Bekleyen</th></tr></thead>
             <tbody id="compareTable"></tbody>
           </table>
         </div>
@@ -292,8 +292,9 @@ function computeOverviewStats(scope) {
   const active = rentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays === 0);
   const overdue = rentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0);
   const returned = rentals.filter(r => r.returnDate);
+  const pendingLost = rentals.filter(r => !r.returnDate && r.lost);
   const totalCopies = books.reduce((s, b) => s + b.total, 0);
-  return { books, members, rentals, active, overdue, returned, totalCopies };
+  return { books, members, rentals, active, overdue, returned, pendingLost, totalCopies };
 }
 
 function renderOverviewBlock(prefix, scope) {
@@ -304,7 +305,8 @@ function renderOverviewBlock(prefix, scope) {
     { key: 'members', label: 'Toplam Üye', val: stats.members.length, cls: '' },
     { key: 'active', label: 'Aktif Ödünç', val: stats.active.length, cls: 'accent-green' },
     { key: 'overdue', label: 'Gecikmiş', val: stats.overdue.length, cls: 'accent' },
-    { key: 'returned', label: 'İade Edilen', val: stats.returned.length, cls: '' }
+    { key: 'returned', label: 'İade Edilen', val: stats.returned.length, cls: '' },
+    { key: 'pendingLost', label: 'İmha Onayı Bekleyen', val: stats.pendingLost.length, cls: '' }
   ];
   const activeKey = overviewExpandState[prefix];
   const cardsHtml = cards.map(c => `
@@ -380,6 +382,9 @@ function renderOverviewDetail(prefix) {
   const term = (overviewSearch[prefix] || '').trim().toLowerCase();
   let head = '', rowsHtml = [];
 
+  const titleMap = { books: 'Toplam Kitap', members: 'Toplam Üye', active: 'Aktif Ödünç', overdue: 'Gecikmiş', returned: 'İade Edilen', pendingLost: 'İmha Onayı Bekleyen' };
+  document.getElementById(prefix + 'DetailTitle').textContent = titleMap[key] || '';
+
   if (key === 'books') {
     head = `<tr><th>Başlık</th><th>Yazar</th><th>Toplam Nüsha</th><th>Boşta</th>${showLibCol ? '<th>Kütüphane</th>' : ''}</tr>`;
     let list = stats.books;
@@ -392,8 +397,9 @@ function renderOverviewDetail(prefix) {
     if (term) list = list.filter(u => u.name.toLowerCase().includes(term) || (u.phone || '').toLowerCase().includes(term));
     rowsHtml = list.map(u => `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.phone || '—')}</td>${showLibCol ? `<td>${escapeHtml(libraryName(u.library))}</td>` : ''}</tr>`);
   } else {
-    const list0 = key === 'active' ? stats.active : key === 'overdue' ? stats.overdue : stats.returned;
-    head = `<tr><th>Üye</th><th>Kitap</th><th>Alış</th><th>${key === 'returned' ? 'İade Tarihi' : 'Vade Tarihi'}</th>${key === 'overdue' ? '<th>Gecikme</th>' : ''}${showLibCol ? '<th>Kütüphane</th>' : ''}</tr>`;
+    const list0 = key === 'active' ? stats.active : key === 'overdue' ? stats.overdue : key === 'returned' ? stats.returned : stats.pendingLost;
+    const dateColLabel = key === 'returned' ? 'İade Tarihi' : key === 'pendingLost' ? 'Kayıp Tarihi' : 'Vade Tarihi';
+    head = `<tr><th>Üye</th><th>Kitap</th><th>Alış</th><th>${dateColLabel}</th>${key === 'overdue' ? '<th>Gecikme</th>' : ''}${showLibCol ? '<th>Kütüphane</th>' : ''}</tr>`;
     let joined = list0.map(r => ({
       r,
       user: data.users.find(u => u.id === r.userId) || { name: '—' },
@@ -402,7 +408,7 @@ function renderOverviewDetail(prefix) {
     if (term) joined = joined.filter(({ user, book }) => user.name.toLowerCase().includes(term) || book.title.toLowerCase().includes(term));
     rowsHtml = joined.map(({ r, user, book }) => {
       const st = rentalStatus(r);
-      const dateCol = key === 'returned' ? formatDateTR(r.returnDate) : formatDateTR(r.dueDate);
+      const dateCol = key === 'returned' ? formatDateTR(r.returnDate) : key === 'pendingLost' ? formatDateTR(r.lostDate) : formatDateTR(r.dueDate);
       const overdueCol = key === 'overdue' ? `<td class="text-danger fw-semibold">${st.overdueDays} gün</td>` : '';
       return `<tr><td>${escapeHtml(user.name)}</td><td>${escapeHtml(book.title)}</td><td>${formatDateTR(r.rentalDate)}</td><td>${dateCol}</td>${overdueCol}${showLibCol ? `<td>${escapeHtml(libraryName(book.library))}</td>` : ''}</tr>`;
     });
@@ -612,12 +618,13 @@ function renderCompareTab() {
     const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === lib.id; });
     const active = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays === 0).length;
     const overdue = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0).length;
+    const pendingLost = libRentals.filter(r => !r.returnDate && r.lost).length;
     const catSet = new Set();
     libBooks.forEach(b => { (Array.isArray(b.category) ? b.category : [b.category]).forEach(c => { if (c) catSet.add(c); }); });
     return `<tr>
       <td>${escapeHtml(lib.name)}</td>
       <td><button type="button" class="btn btn-link btn-sm p-0 fw-semibold" onclick="openCategoryBreakdown('${lib.id}')">${catSet.size}</button></td>
-      <td>${titles}</td><td>${total}</td><td>${free}</td><td>${members}</td><td>${active}</td><td class="text-danger">${overdue}</td>
+      <td>${titles}</td><td>${total}</td><td>${free}</td><td>${members}</td><td>${active}</td><td class="text-danger">${overdue}</td><td>${pendingLost}</td>
     </tr>`;
   }).join('');
 
