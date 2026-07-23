@@ -29,6 +29,7 @@
 .stat-card-btn.active { outline: 2px solid var(--lacivert); }
 .stat-card-btn .stat-value { font-size: 1.85rem; font-weight: 800; color: var(--lacivert-koyu); }
 .stat-card-btn .stat-label { font-size: .85rem; color: var(--slate-500); }
+#reportTabs .nav-link { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -44,87 +45,80 @@
   <div id="page-content" class="d-none">
     <h2 class="section-title mb-3">Rapor</h2>
 
-    <ul class="nav nav-tabs mb-3" id="reportTabs">
-      <li class="nav-item"><button class="nav-link active" data-tab="own" onclick="switchTab('own')">Kendi Kütüphanem</button></li>
-      <li class="nav-item d-none" id="tabCompareItem"><button class="nav-link" data-tab="compare" onclick="switchTab('compare')">Kütüphaneler Arası Karşılaştırma</button></li>
-      <li class="nav-item d-none" id="tabAuditItem"><button class="nav-link" data-tab="audit" onclick="switchTab('audit')">Kayıt &amp; İmha Denetimi</button></li>
-    </ul>
+    <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto" id="reportTabs"></ul>
 
-    <!-- KENDİ KÜTÜPHANEM -->
-    <div id="tab-own">
-      <div id="ownOverview" class="mb-4"></div>
+    <div id="dynamicPanes"></div>
+  </div>
+</div>
 
-      <div class="card p-3 mb-3">
-        <div class="row g-2">
-          <div class="col-md-3"><label class="form-label small">Başlangıç</label><input type="date" id="fStart" class="form-control form-control-sm"></div>
-          <div class="col-md-3"><label class="form-label small">Bitiş</label><input type="date" id="fEnd" class="form-control form-control-sm"></div>
-          <div class="col-md-3"><label class="form-label small">Kategori</label><select id="fCategory" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
-          <div class="col-md-3"><label class="form-label small">Durum</label>
-            <select id="fStatus" class="form-select form-select-sm">
-              <option value="">Tümü</option><option value="active">Ödünçte</option><option value="overdue">Gecikmiş</option><option value="returned">İade Edildi</option><option value="lost">Kayıp</option>
-            </select>
-          </div>
-          <div class="col-md-4"><label class="form-label small">Üye</label><select id="fUser" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
-          <div class="col-md-4"><label class="form-label small">Kitap</label><select id="fBook" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
-          <div class="col-md-4 d-flex align-items-end"><button class="btn btn-navy btn-sm w-100" onclick="renderOwnTab()">Filtrele</button></div>
-        </div>
-      </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+/* -------------------------------------------------------------------------
+   Durum
+   ------------------------------------------------------------------------- */
+let compareChartInstance = null;
+const chartInstances = {};       // prefix -> { category: Chart, trend: Chart }
+const rankingsByPrefix = {};     // prefix -> { books: [...], users: [...], overdue: [...] }
+const rankExpandState = {};      // "prefix:key" -> bool
+const paneLibraryId = {};        // prefix -> libId (bu panonun ait olduğu kütüphane)
+const overviewExpandState = {};  // prefix -> key|null (hangi kart genişletilmiş)
+const overviewTrendMode = {};    // prefix -> 'daily' | 'weekday'
+const overviewSearch = {};       // prefix -> arama metni
+const overviewSort = {};         // prefix -> null | 'total_desc'
+const overviewScope = {};        // prefix -> scope (libId ya da 'ALL')
 
-      <div class="row g-3 mb-3" id="ownStatCards"></div>
+(async () => {
+  if (await initAdminPage('rapor', { requireLogin: true, requirePermission: ['view_reports', 'view_reports_all'] })) boot();
+})();
 
-      <div class="card p-3 mb-3">
-        <h6 class="text-navy">Kategoriye Göre Stok Durumu</h6>
-        <canvas id="ownChart" height="90"></canvas>
-      </div>
+function boot() {
+  const data = getData();
+  const admin = hasPermission('view_reports_all');
+  buildTabsAndPanes(admin, data);
 
-      <div class="table-responsive-card mb-3">
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <thead><tr><th>Üye</th><th>Kitap</th><th>Alış</th><th>İade Tarihi</th><th>Durum</th></tr></thead>
-            <tbody id="ownResultsTable"></tbody>
-          </table>
-        </div>
-      </div>
+  if (admin) {
+    document.getElementById('aLibrary').innerHTML += data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
+    renderOverviewBlock('all', 'ALL');
+    renderCompareTab();
+    renderAuditTab();
+    data.libraries.forEach(lib => {
+      const prefix = 'lib_' + lib.id;
+      populateFilterDropdowns(prefix, lib.id, data);
+      renderLibraryPane(prefix);
+    });
+  } else {
+    populateFilterDropdowns('own', paneLibraryId.own, data);
+    renderLibraryPane('own');
+  }
+}
 
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="table-responsive-card">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h6 class="text-navy mb-0">En Çok Ödünç Alınan Kitaplar</h6>
-              <button class="btn btn-sm btn-outline-secondary" disabled title="Yakında Eklenecek">Excel</button>
-            </div>
-            <ol class="list-group list-group-numbered" id="topBooksList"></ol>
-            <button class="btn btn-link btn-sm mt-2" onclick="toggleExpand('books')" id="toggleBooksBtn">Tümünü Göster</button>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="table-responsive-card">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h6 class="text-navy mb-0">En Aktif Üyeler</h6>
-              <button class="btn btn-sm btn-outline-secondary" disabled title="Yakında Eklenecek">Excel</button>
-            </div>
-            <ol class="list-group list-group-numbered" id="topUsersList"></ol>
-            <button class="btn btn-link btn-sm mt-2" onclick="toggleExpand('users')" id="toggleUsersBtn">Tümünü Göster</button>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="table-responsive-card">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h6 class="text-navy mb-0">En Çok Geciktiren Üyeler</h6>
-              <button class="btn btn-sm btn-outline-secondary" disabled title="Yakında Eklenecek">Excel</button>
-            </div>
-            <ol class="list-group list-group-numbered" id="topOverdueList"></ol>
-            <button class="btn btn-link btn-sm mt-2" onclick="toggleExpand('overdue')" id="toggleOverdueBtn">Tümünü Göster</button>
-          </div>
-        </div>
-      </div>
-    </div>
+/* -------------------------------------------------------------------------
+   Sekmeler: yetkisi olmayan personel sadece "Kendi Kütüphanem" görür.
+   "Tüm Kütüphaneler Raporu" yetkisi olan (view_reports_all) personel için
+   her kütüphanenin kendi ayrı sekmesi + birleşik "Tüm Kütüphaneler" sekmesi
+   + denetim sekmesi oluşturulur — tek ve belirsiz "Kendi Kütüphanem"
+   sekmesi yerine, hangi kütüphaneye baktığı her zaman nettir.
+   ------------------------------------------------------------------------- */
 
-    <!-- KARŞILAŞTIRMA -->
-    <div id="tab-compare" class="d-none">
+function buildTabsAndPanes(admin, data) {
+  let navHtml = '';
+  let panesHtml = '';
+  let first = true;
+
+  function addTab(key, label, contentHtml) {
+    navHtml += `<li class="nav-item"><button class="nav-link ${first ? 'active' : ''}" data-tab="${key}" onclick="switchTab('${key}')">${escapeHtml(label)}</button></li>`;
+    panesHtml += `<div id="tab-${key}" class="${first ? '' : 'd-none'}">${contentHtml}</div>`;
+    first = false;
+  }
+
+  if (admin) {
+    addTab('all', 'Tüm Kütüphaneler', `
       <div class="small text-uppercase text-muted fw-bold mb-2" style="letter-spacing:.06em;">Ana Yönetici Raporu — Tüm Kütüphaneler</div>
       <div id="allOverview" class="mb-4"></div>
-
       <div class="card p-3 mb-3">
         <h6 class="text-navy">Kütüphaneye Göre Kitap Dağılımı</h6>
         <canvas id="compareChart" height="90"></canvas>
@@ -136,84 +130,142 @@
             <tbody id="compareTable"></tbody>
           </table>
         </div>
+      </div>`);
+
+    data.libraries.forEach(lib => {
+      const prefix = 'lib_' + lib.id;
+      paneLibraryId[prefix] = lib.id;
+      addTab(prefix, lib.name, libraryPaneTemplate(prefix));
+    });
+
+    addTab('audit', 'Kayıt & İmha Denetimi', auditPaneTemplate());
+  } else {
+    paneLibraryId.own = getEffectiveLibrary();
+    addTab('own', 'Kendi Kütüphanem', libraryPaneTemplate('own'));
+  }
+
+  document.getElementById('reportTabs').innerHTML = navHtml;
+  document.getElementById('dynamicPanes').innerHTML = panesHtml;
+}
+
+function switchTab(key) {
+  document.querySelectorAll('#reportTabs .nav-link').forEach(el => el.classList.toggle('active', el.dataset.tab === key));
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.toggle('d-none', el.id !== 'tab-' + key));
+  // Chart.js, d-none (display:none) durumundayken oluşturulan canvas'ları 0x0
+  // boyutlandırır; sekme görünür olduktan sonra yeniden boyutlandırmak gerekir.
+  requestAnimationFrame(() => {
+    const charts = chartInstances[key];
+    if (charts) {
+      if (charts.trend) charts.trend.resize();
+      if (charts.category) charts.category.resize();
+    }
+    if (key === 'all' && compareChartInstance) compareChartInstance.resize();
+  });
+}
+
+function libraryPaneTemplate(prefix) {
+  return `
+    <div id="${prefix}Overview" class="mb-4"></div>
+
+    <div class="card p-3 mb-3">
+      <div class="row g-2">
+        <div class="col-md-3"><label class="form-label small">Başlangıç</label><input type="date" id="${prefix}Start" class="form-control form-control-sm"></div>
+        <div class="col-md-3"><label class="form-label small">Bitiş</label><input type="date" id="${prefix}End" class="form-control form-control-sm"></div>
+        <div class="col-md-3"><label class="form-label small">Kategori</label><select id="${prefix}Category" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+        <div class="col-md-3"><label class="form-label small">Durum</label>
+          <select id="${prefix}Status" class="form-select form-select-sm">
+            <option value="">Tümü</option><option value="active">Ödünçte</option><option value="overdue">Gecikmiş</option><option value="returned">İade Edildi</option><option value="lost">Kayıp</option>
+          </select>
+        </div>
+        <div class="col-md-4"><label class="form-label small">Üye</label><select id="${prefix}User" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+        <div class="col-md-4"><label class="form-label small">Kitap</label><select id="${prefix}Book" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+        <div class="col-md-4 d-flex align-items-end"><button class="btn btn-navy btn-sm w-100" onclick="renderLibraryPane('${prefix}')">Filtrele</button></div>
       </div>
     </div>
 
-    <!-- DENETİM -->
-    <div id="tab-audit" class="d-none">
-      <div class="card p-3 mb-3">
-        <div class="row g-2">
-          <div class="col-md-3"><label class="form-label small">Başlangıç</label><input type="date" id="aStart" class="form-control form-control-sm"></div>
-          <div class="col-md-3"><label class="form-label small">Bitiş</label><input type="date" id="aEnd" class="form-control form-control-sm"></div>
-          <div class="col-md-3"><label class="form-label small">Kütüphane</label><select id="aLibrary" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
-          <div class="col-md-3 d-flex align-items-end"><button class="btn btn-navy btn-sm w-100" onclick="renderAuditTab()">Filtrele</button></div>
-        </div>
-      </div>
-      <div class="row g-3">
-        <div class="col-md-6">
-          <div class="table-responsive-card">
-            <h6 class="text-navy">Dönemde Eklenen Kitaplar</h6>
-            <div class="table-responsive"><table class="table table-sm align-middle">
-              <thead><tr><th>Kitap</th><th>Kütüphane</th><th>Tarih</th><th>Kaynak</th></tr></thead>
-              <tbody id="auditAddedTable"></tbody>
-            </table></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="table-responsive-card">
-            <h6 class="text-navy">İmha Kayıtları</h6>
-            <div class="table-responsive"><table class="table table-sm align-middle">
-              <thead><tr><th>Kitap</th><th>Kütüphane</th><th>Tarih</th><th>Durum</th></tr></thead>
-              <tbody id="auditRetireTable"></tbody>
-            </table></div>
-          </div>
-        </div>
+    <div class="row g-3 mb-3" id="${prefix}StatCards"></div>
+
+    <div class="card p-3 mb-3">
+      <h6 class="text-navy">Kategoriye Göre Stok Durumu</h6>
+      <canvas id="${prefix}CatChart" height="90"></canvas>
+    </div>
+
+    <div class="table-responsive-card mb-3">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Üye</th><th>Kitap</th><th>Alış</th><th>İade Tarihi</th><th>Durum</th></tr></thead>
+          <tbody id="${prefix}ResultsTable"></tbody>
+        </table>
       </div>
     </div>
 
-  </div>
-</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="table-responsive-card">
+          <h6 class="text-navy mb-2">En Çok Ödünç Alınan Kitaplar</h6>
+          <ol class="list-group list-group-numbered" id="${prefix}TopBooksList"></ol>
+          <button class="btn btn-link btn-sm mt-2" onclick="toggleRankExpand('${prefix}','books')" id="${prefix}ToggleBooksBtn">Tümünü Göster</button>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="table-responsive-card">
+          <h6 class="text-navy mb-2">En Aktif Üyeler</h6>
+          <ol class="list-group list-group-numbered" id="${prefix}TopUsersList"></ol>
+          <button class="btn btn-link btn-sm mt-2" onclick="toggleRankExpand('${prefix}','users')" id="${prefix}ToggleUsersBtn">Tümünü Göster</button>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="table-responsive-card">
+          <h6 class="text-navy mb-2">En Çok Geciktiren Üyeler</h6>
+          <ol class="list-group list-group-numbered" id="${prefix}TopOverdueList"></ol>
+          <button class="btn btn-link btn-sm mt-2" onclick="toggleRankExpand('${prefix}','overdue')" id="${prefix}ToggleOverdueBtn">Tümünü Göster</button>
+        </div>
+      </div>
+    </div>`;
+}
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/supabase-config.js"></script>
-<script src="assets/app.js"></script>
-<script>
-let ownChartInstance = null, compareChartInstance = null;
-let ownTrendChartInstance = null, allTrendChartInstance = null;
-const expandState = { books: false, users: false, overdue: false };
-const overviewExpandState = { own: null, all: null };
-const overviewTrendMode = { own: 'daily', all: 'daily' };
+function auditPaneTemplate() {
+  return `
+    <div class="card p-3 mb-3">
+      <div class="row g-2">
+        <div class="col-md-3"><label class="form-label small">Başlangıç</label><input type="date" id="aStart" class="form-control form-control-sm"></div>
+        <div class="col-md-3"><label class="form-label small">Bitiş</label><input type="date" id="aEnd" class="form-control form-control-sm"></div>
+        <div class="col-md-3"><label class="form-label small">Kütüphane</label><select id="aLibrary" class="form-select form-select-sm"><option value="">Tümü</option></select></div>
+        <div class="col-md-3 d-flex align-items-end"><button class="btn btn-navy btn-sm w-100" onclick="renderAuditTab()">Filtrele</button></div>
+      </div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="table-responsive-card">
+          <h6 class="text-navy">Dönemde Eklenen Kitaplar</h6>
+          <div class="table-responsive"><table class="table table-sm align-middle">
+            <thead><tr><th>Kitap</th><th>Kütüphane</th><th>Tarih</th><th>Kaynak</th></tr></thead>
+            <tbody id="auditAddedTable"></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="table-responsive-card">
+          <h6 class="text-navy">İmha Kayıtları</h6>
+          <div class="table-responsive"><table class="table table-sm align-middle">
+            <thead><tr><th>Kitap</th><th>Kütüphane</th><th>Tarih</th><th>Durum</th></tr></thead>
+            <tbody id="auditRetireTable"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>`;
+}
 
-(async () => {
-  if (await initAdminPage('rapor', { requireLogin: true, requirePermission: ['view_reports', 'view_reports_all'] })) boot();
-})();
-
-function boot() {
-  const staff = getCurrentStaff();
-  if (hasPermission('view_reports_all')) {
-    document.getElementById('tabCompareItem').classList.remove('d-none');
-    document.getElementById('tabAuditItem').classList.remove('d-none');
-  }
-  const data = getData();
-  document.getElementById('fCategory').innerHTML += data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-  document.getElementById('fUser').innerHTML += data.users.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
-  document.getElementById('aLibrary').innerHTML += data.libraries.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
-
-  renderOverviewBlock('own', getOwnLibrary());
-  renderOwnTab();
-  if (hasPermission('view_reports_all')) {
-    renderOverviewBlock('all', 'ALL');
-    renderCompareTab();
-    renderAuditTab();
-  }
+function populateFilterDropdowns(prefix, libId, data) {
+  document.getElementById(prefix + 'Category').innerHTML += data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  document.getElementById(prefix + 'User').innerHTML += data.users.filter(u => u.library === libId).map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
 }
 
 /* -------------------------------------------------------------------------
    Genel Bakış: toplam kitap / üye / aktif ödünç / gecikmiş / iade edilen
-   — "own" (kendi kütüphanem) ve "all" (tüm kütüphaneler, ana yönetici
-   raporu) için aynı bileşen; tıklanınca satır satır detay tablosu açılır.
+   — her sekme (kendi kütüphanem, her kütüphane, tüm kütüphaneler) için aynı
+   bileşen; bir karta tıklanınca altında arama ve (kitaplar için) nüshaya
+   göre sıralama yapılabilen bir detay tablosu açılır.
    ------------------------------------------------------------------------- */
 
 function computeOverviewStats(scope) {
@@ -233,6 +285,7 @@ function computeOverviewStats(scope) {
 }
 
 function renderOverviewBlock(prefix, scope) {
+  overviewScope[prefix] = scope;
   const stats = computeOverviewStats(scope);
   const cards = [
     { key: 'books', label: 'Toplam Kitap', val: stats.totalCopies, cls: '' },
@@ -241,28 +294,37 @@ function renderOverviewBlock(prefix, scope) {
     { key: 'overdue', label: 'Gecikmiş', val: stats.overdue.length, cls: 'accent' },
     { key: 'returned', label: 'İade Edilen', val: stats.returned.length, cls: '' }
   ];
+  const activeKey = overviewExpandState[prefix];
   const cardsHtml = cards.map(c => `
     <div class="col-6 col-md">
-      <button type="button" class="stat-card-btn ${c.cls} ${overviewExpandState[prefix] === c.key ? 'active' : ''}" onclick="toggleOverviewDetail('${prefix}','${c.key}')">
+      <button type="button" class="stat-card-btn ${c.cls} ${activeKey === c.key ? 'active' : ''}" onclick="toggleOverviewDetail('${prefix}','${c.key}')">
         <div class="stat-value">${c.val}</div>
         <div class="stat-label">${escapeHtml(c.label)}</div>
       </button>
     </div>`).join('');
 
+  const trendMode = overviewTrendMode[prefix] || 'daily';
   const modeSel = `
     <select class="form-select form-select-sm w-auto" onchange="setTrendMode('${prefix}', this.value)">
-      <option value="daily" ${overviewTrendMode[prefix] === 'daily' ? 'selected' : ''}>Son 30 Gün</option>
-      <option value="weekday" ${overviewTrendMode[prefix] === 'weekday' ? 'selected' : ''}>Haftanın Günlerine Göre</option>
+      <option value="daily" ${trendMode === 'daily' ? 'selected' : ''}>Son 30 Gün</option>
+      <option value="weekday" ${trendMode === 'weekday' ? 'selected' : ''}>Haftanın Günlerine Göre</option>
     </select>`;
 
-  const detailOpen = !!overviewExpandState[prefix];
+  const detailOpen = !!activeKey;
   document.getElementById(prefix + 'Overview').innerHTML = `
     <div class="row g-3 mb-3">${cardsHtml}</div>
     <div id="${prefix}DetailPanel" class="table-responsive-card mb-3 ${detailOpen ? '' : 'd-none'}">
-      <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
         <h6 class="text-navy mb-0" id="${prefix}DetailTitle"></h6>
-        <button class="btn btn-sm btn-outline-secondary" onclick="toggleOverviewDetail('${prefix}', null)">Kapat</button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <button class="btn btn-sm btn-outline-secondary ${activeKey === 'books' ? '' : 'd-none'}" id="${prefix}DetailSortBtn" onclick="toggleDetailSort('${prefix}')">
+            <i class="bi bi-sort-numeric-down"></i> Nüshaya Göre Sırala
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="exportDetailCsv('${prefix}')"><i class="bi bi-download"></i> CSV İndir</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleOverviewDetail('${prefix}', null)">Kapat</button>
+        </div>
       </div>
+      <input type="text" class="form-control form-control-sm mb-2" style="max-width:320px;" placeholder="Ara..." id="${prefix}DetailSearch" value="${escapeHtml(overviewSearch[prefix] || '')}" oninput="onDetailSearch('${prefix}', this.value)">
       <div class="table-responsive"><table class="table table-sm align-middle"><thead id="${prefix}DetailHead"></thead><tbody id="${prefix}DetailBody"></tbody></table></div>
     </div>
     <div class="table-responsive-card mb-3">
@@ -273,54 +335,91 @@ function renderOverviewBlock(prefix, scope) {
       <canvas id="${prefix}TrendChart" height="80"></canvas>
     </div>`;
 
-  if (detailOpen) renderOverviewDetail(prefix, scope, overviewExpandState[prefix]);
+  if (detailOpen) renderOverviewDetail(prefix);
   renderTrendChart(prefix, scope);
 }
 
 function toggleOverviewDetail(prefix, key) {
   overviewExpandState[prefix] = (overviewExpandState[prefix] === key) ? null : key;
-  const scope = prefix === 'own' ? getOwnLibrary() : 'ALL';
-  renderOverviewBlock(prefix, scope);
+  overviewSearch[prefix] = '';
+  overviewSort[prefix] = null;
+  renderOverviewBlock(prefix, overviewScope[prefix]);
 }
 
-function renderOverviewDetail(prefix, scope, key) {
+function onDetailSearch(prefix, term) {
+  overviewSearch[prefix] = term;
+  renderOverviewDetail(prefix);
+}
+
+function toggleDetailSort(prefix) {
+  overviewSort[prefix] = overviewSort[prefix] === 'total_desc' ? null : 'total_desc';
+  const btn = document.getElementById(prefix + 'DetailSortBtn');
+  if (btn) btn.classList.toggle('active', overviewSort[prefix] === 'total_desc');
+  renderOverviewDetail(prefix);
+}
+
+function renderOverviewDetail(prefix) {
+  const key = overviewExpandState[prefix];
+  if (!key) return;
+  const scope = overviewScope[prefix];
   const data = getData();
   const stats = computeOverviewStats(scope);
   const showLibCol = scope === 'ALL';
-  let head = '', rows = '';
+  const term = (overviewSearch[prefix] || '').trim().toLowerCase();
+  let head = '', rowsHtml = [];
 
   if (key === 'books') {
-    document.getElementById(prefix + 'DetailTitle').textContent = 'Toplam Kitap — Satır Satır';
-    head = `<tr><th>Başlık</th><th>Yazar</th>${showLibCol ? '<th>Kütüphane</th>' : ''}<th>Toplam Nüsha</th><th>Boşta</th></tr>`;
-    rows = stats.books.map(b => `<tr><td>${escapeHtml(b.title)}</td><td>${escapeHtml(b.author)}</td>${showLibCol ? `<td>${escapeHtml(libraryName(b.library))}</td>` : ''}<td>${b.total}</td><td>${b.stock}</td></tr>`).join('');
+    head = `<tr><th>Başlık</th><th>Yazar</th><th>Toplam Nüsha</th><th>Boşta</th>${showLibCol ? '<th>Kütüphane</th>' : ''}</tr>`;
+    let list = stats.books;
+    if (term) list = list.filter(b => b.title.toLowerCase().includes(term) || b.author.toLowerCase().includes(term));
+    if (overviewSort[prefix] === 'total_desc') list = [...list].sort((a, c) => c.total - a.total);
+    rowsHtml = list.map(b => `<tr><td>${escapeHtml(b.title)}</td><td>${escapeHtml(b.author)}</td><td>${b.total}</td><td>${b.stock}</td>${showLibCol ? `<td>${escapeHtml(libraryName(b.library))}</td>` : ''}</tr>`);
   } else if (key === 'members') {
-    document.getElementById(prefix + 'DetailTitle').textContent = 'Toplam Üye — Satır Satır';
     head = `<tr><th>Ad Soyad</th><th>Telefon</th>${showLibCol ? '<th>Kütüphane</th>' : ''}</tr>`;
-    rows = stats.members.map(u => `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.phone || '—')}</td>${showLibCol ? `<td>${escapeHtml(libraryName(u.library))}</td>` : ''}</tr>`).join('');
+    let list = stats.members;
+    if (term) list = list.filter(u => u.name.toLowerCase().includes(term) || (u.phone || '').toLowerCase().includes(term));
+    rowsHtml = list.map(u => `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.phone || '—')}</td>${showLibCol ? `<td>${escapeHtml(libraryName(u.library))}</td>` : ''}</tr>`);
   } else {
-    const list = key === 'active' ? stats.active : key === 'overdue' ? stats.overdue : stats.returned;
-    const titleMap = { active: 'Aktif Ödünç — Satır Satır', overdue: 'Gecikmiş — Satır Satır', returned: 'İade Edilen — Satır Satır' };
-    document.getElementById(prefix + 'DetailTitle').textContent = titleMap[key];
-    head = `<tr><th>Üye</th><th>Kitap</th>${showLibCol ? '<th>Kütüphane</th>' : ''}<th>Alış</th><th>${key === 'returned' ? 'İade Tarihi' : 'Vade Tarihi'}</th>${key === 'overdue' ? '<th>Gecikme</th>' : ''}</tr>`;
-    rows = list.map(r => {
-      const user = data.users.find(u => u.id === r.userId) || { name: '—' };
-      const book = data.books.find(b => b.id === r.bookId) || { title: '—', library: null };
+    const list0 = key === 'active' ? stats.active : key === 'overdue' ? stats.overdue : stats.returned;
+    head = `<tr><th>Üye</th><th>Kitap</th><th>Alış</th><th>${key === 'returned' ? 'İade Tarihi' : 'Vade Tarihi'}</th>${key === 'overdue' ? '<th>Gecikme</th>' : ''}${showLibCol ? '<th>Kütüphane</th>' : ''}</tr>`;
+    let joined = list0.map(r => ({
+      r,
+      user: data.users.find(u => u.id === r.userId) || { name: '—' },
+      book: data.books.find(b => b.id === r.bookId) || { title: '—', library: null }
+    }));
+    if (term) joined = joined.filter(({ user, book }) => user.name.toLowerCase().includes(term) || book.title.toLowerCase().includes(term));
+    rowsHtml = joined.map(({ r, user, book }) => {
       const st = rentalStatus(r);
       const dateCol = key === 'returned' ? formatDateTR(r.returnDate) : formatDateTR(r.dueDate);
       const overdueCol = key === 'overdue' ? `<td class="text-danger fw-semibold">${st.overdueDays} gün</td>` : '';
-      return `<tr><td>${escapeHtml(user.name)}</td><td>${escapeHtml(book.title)}</td>${showLibCol ? `<td>${escapeHtml(libraryName(book.library))}</td>` : ''}<td>${formatDateTR(r.rentalDate)}</td><td>${dateCol}</td>${overdueCol}</tr>`;
-    }).join('');
+      return `<tr><td>${escapeHtml(user.name)}</td><td>${escapeHtml(book.title)}</td><td>${formatDateTR(r.rentalDate)}</td><td>${dateCol}</td>${overdueCol}${showLibCol ? `<td>${escapeHtml(libraryName(book.library))}</td>` : ''}</tr>`;
+    });
   }
 
   document.getElementById(prefix + 'DetailHead').innerHTML = head;
-  const colCount = head.split('<th>').length - 1;
-  document.getElementById(prefix + 'DetailBody').innerHTML = rows || `<tr><td colspan="${colCount}" class="text-center text-muted py-3">Kayıt yok.</td></tr>`;
+  const colCount = (head.match(/<th>/g) || []).length;
+  document.getElementById(prefix + 'DetailBody').innerHTML = rowsHtml.join('') || `<tr><td colspan="${colCount}" class="text-center text-muted py-3">Kayıt yok.</td></tr>`;
+}
+
+function exportDetailCsv(prefix) {
+  const table = document.querySelector('#' + prefix + 'DetailPanel table');
+  if (!table) return;
+  const rows = [...table.querySelectorAll('tr')].map(tr =>
+    [...tr.children].map(cell => '"' + cell.textContent.replace(/"/g, '""').trim() + '"').join(',')
+  );
+  const csv = rows.join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${prefix}-${overviewExpandState[prefix] || 'rapor'}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function setTrendMode(prefix, mode) {
   overviewTrendMode[prefix] = mode;
-  const scope = prefix === 'own' ? getOwnLibrary() : 'ALL';
-  renderTrendChart(prefix, scope);
+  renderTrendChart(prefix, overviewScope[prefix]);
 }
 
 function renderTrendChart(prefix, scope) {
@@ -331,7 +430,7 @@ function renderTrendChart(prefix, scope) {
   });
 
   let labels, counts;
-  if (overviewTrendMode[prefix] === 'weekday') {
+  if ((overviewTrendMode[prefix] || 'daily') === 'weekday') {
     const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
     const order = [1, 2, 3, 4, 5, 6, 0]; // Pazartesi → Pazar
     const totals = new Array(7).fill(0);
@@ -352,41 +451,38 @@ function renderTrendChart(prefix, scope) {
     counts = Object.values(buckets);
   }
 
-  if (prefix === 'own' && ownTrendChartInstance) ownTrendChartInstance.destroy();
-  if (prefix === 'all' && allTrendChartInstance) allTrendChartInstance.destroy();
-  const chart = new Chart(document.getElementById(prefix + 'TrendChart'), {
+  if (!chartInstances[prefix]) chartInstances[prefix] = {};
+  if (chartInstances[prefix].trend) chartInstances[prefix].trend.destroy();
+  chartInstances[prefix].trend = new Chart(document.getElementById(prefix + 'TrendChart'), {
     type: 'bar',
     data: { labels, datasets: [{ label: 'Ödünç Verilen Kitap', data: counts, backgroundColor: '#164194', borderRadius: 4, maxBarThickness: 34 }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
   });
-  if (prefix === 'own') ownTrendChartInstance = chart; else allTrendChartInstance = chart;
 }
 
-function switchTab(key) {
-  document.querySelectorAll('#reportTabs .nav-link').forEach(el => el.classList.toggle('active', el.dataset.tab === key));
-  ['own', 'compare', 'audit'].forEach(k => document.getElementById('tab-' + k).classList.toggle('d-none', k !== key));
-}
+/* -------------------------------------------------------------------------
+   Kütüphane paneli (Kendi Kütüphanem / her kütüphanenin kendi sekmesi):
+   filtre formu, genel bakış, kategori grafiği, sonuç tablosu, sıralamalar.
+   ------------------------------------------------------------------------- */
 
-function getOwnLibrary() {
-  return getEffectiveLibrary();
-}
+function renderLibraryPane(prefix) {
+  const libId = paneLibraryId[prefix];
+  renderOverviewBlock(prefix, libId);
 
-function renderOwnTab() {
   const data = getData();
-  const lib = getOwnLibrary();
-  const start = document.getElementById('fStart').value;
-  const end = document.getElementById('fEnd').value;
-  const catF = document.getElementById('fCategory').value;
-  const statusF = document.getElementById('fStatus').value;
-  const userF = document.getElementById('fUser').value;
+  const start = document.getElementById(prefix + 'Start').value;
+  const end = document.getElementById(prefix + 'End').value;
+  const catF = document.getElementById(prefix + 'Category').value;
+  const statusF = document.getElementById(prefix + 'Status').value;
+  const userF = document.getElementById(prefix + 'User').value;
 
-  document.getElementById('fBook').innerHTML = '<option value="">Tümü</option>' +
-    data.books.filter(b => b.library === lib).map(b => `<option value="${b.id}">${escapeHtml(b.title)}</option>`).join('');
-  const bookF = document.getElementById('fBook').value;
+  document.getElementById(prefix + 'Book').innerHTML = '<option value="">Tümü</option>' +
+    data.books.filter(b => b.library === libId).map(b => `<option value="${b.id}">${escapeHtml(b.title)}</option>`).join('');
+  const bookF = document.getElementById(prefix + 'Book').value;
 
   let rentals = data.rentals.filter(r => {
     const book = data.books.find(b => b.id === r.bookId);
-    if (!book || book.library !== lib) return false;
+    if (!book || book.library !== libId) return false;
     if (start && r.rentalDate < start) return false;
     if (end && r.rentalDate > end) return false;
     if (userF && r.userId !== userF) return false;
@@ -409,12 +505,12 @@ function renderOwnTab() {
   const returnedCount = rentals.filter(r => r.returnDate).length;
   const lostCount = rentals.filter(r => r.lost).length;
 
-  document.getElementById('ownStatCards').innerHTML = [
+  document.getElementById(prefix + 'StatCards').innerHTML = [
     ['Toplam Kayıt', totalCount, ''], ['Aktif Ödünçte', activeCount, 'accent-green'],
     ['Gecikmiş', overdueCount, 'accent'], ['İade Edilen', returnedCount, ''], ['Kayıp', lostCount, 'accent']
   ].map(([label, val, cls]) => `<div class="col-6 col-md-3"><div class="stat-card ${cls}"><div class="stat-value">${val}</div><div class="stat-label">${label}</div></div></div>`).join('');
 
-  document.getElementById('ownResultsTable').innerHTML = rentals.map(r => {
+  document.getElementById(prefix + 'ResultsTable').innerHTML = rentals.map(r => {
     const user = data.users.find(u => u.id === r.userId) || { name: '—' };
     const book = data.books.find(b => b.id === r.bookId) || { title: '—' };
     const st = rentalStatus(r);
@@ -422,7 +518,7 @@ function renderOwnTab() {
   }).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">Kayıt bulunamadı.</td></tr>';
 
   // Grafik: kategoriye göre stok
-  const libBooks = data.books.filter(b => b.library === lib);
+  const libBooks = data.books.filter(b => b.library === libId);
   const catTotals = {};
   libBooks.forEach(b => {
     const cats = Array.isArray(b.category) ? b.category : [b.category];
@@ -431,15 +527,16 @@ function renderOwnTab() {
       catTotals[name] = (catTotals[name] || 0) + b.stock;
     });
   });
-  if (ownChartInstance) ownChartInstance.destroy();
-  ownChartInstance = new Chart(document.getElementById('ownChart'), {
+  if (!chartInstances[prefix]) chartInstances[prefix] = {};
+  if (chartInstances[prefix].category) chartInstances[prefix].category.destroy();
+  chartInstances[prefix].category = new Chart(document.getElementById(prefix + 'CatChart'), {
     type: 'bar',
     data: { labels: Object.keys(catTotals), datasets: [{ label: 'Boşta Nüsha', data: Object.values(catTotals), backgroundColor: '#164194' }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
   });
 
   // Sıralı listeler (tüm kayıtlar üzerinden, filtre olmadan — kütüphane bazlı)
-  const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === lib; });
+  const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === libId; });
   const bookCounts = {};
   libRentals.forEach(r => { bookCounts[r.bookId] = (bookCounts[r.bookId] || 0) + 1; });
   const bookRanking = Object.entries(bookCounts).map(([bid, cnt]) => ({ label: data.books.find(b => b.id === bid)?.title || '—', cnt })).sort((a, c) => c.cnt - a.cnt);
@@ -452,25 +549,31 @@ function renderOwnTab() {
   libRentals.forEach(r => { if (rentalStatus(r).overdueDays > 0) overdueCounts[r.userId] = (overdueCounts[r.userId] || 0) + 1; });
   const overdueRanking = Object.entries(overdueCounts).map(([uid, cnt]) => ({ label: data.users.find(u => u.id === uid)?.name || '—', cnt })).sort((a, c) => c.cnt - a.cnt);
 
-  window.__rankings = { books: bookRanking, users: userRanking, overdue: overdueRanking };
-  renderRankingList('books', 'topBooksList');
-  renderRankingList('users', 'topUsersList');
-  renderRankingList('overdue', 'topOverdueList');
+  rankingsByPrefix[prefix] = { books: bookRanking, users: userRanking, overdue: overdueRanking };
+  renderRankingList(prefix, 'books');
+  renderRankingList(prefix, 'users');
+  renderRankingList(prefix, 'overdue');
 }
 
-function renderRankingList(key, elId) {
-  const list = window.__rankings[key] || [];
-  const shown = expandState[key] ? list : list.slice(0, 10);
-  document.getElementById(elId).innerHTML = shown.map(item => `<li class="list-group-item d-flex justify-content-between"><span>${escapeHtml(item.label)}</span><span class="badge bg-navy">${item.cnt}</span></li>`).join('') || '<li class="list-group-item text-muted">Veri yok.</li>';
+function renderRankingList(prefix, key) {
+  const list = (rankingsByPrefix[prefix] && rankingsByPrefix[prefix][key]) || [];
+  const stateKey = prefix + ':' + key;
+  const shown = rankExpandState[stateKey] ? list : list.slice(0, 10);
+  const elSuffix = { books: 'TopBooksList', users: 'TopUsersList', overdue: 'TopOverdueList' }[key];
+  document.getElementById(prefix + elSuffix).innerHTML = shown.map(item => `<li class="list-group-item d-flex justify-content-between"><span>${escapeHtml(item.label)}</span><span class="badge bg-navy">${item.cnt}</span></li>`).join('') || '<li class="list-group-item text-muted">Veri yok.</li>';
 }
 
-function toggleExpand(key) {
-  expandState[key] = !expandState[key];
-  const btnId = { books: 'toggleBooksBtn', users: 'toggleUsersBtn', overdue: 'toggleOverdueBtn' }[key];
-  const elId = { books: 'topBooksList', users: 'topUsersList', overdue: 'topOverdueList' }[key];
-  document.getElementById(btnId).textContent = expandState[key] ? 'Daralt' : 'Tümünü Göster';
-  renderRankingList(key, elId);
+function toggleRankExpand(prefix, key) {
+  const stateKey = prefix + ':' + key;
+  rankExpandState[stateKey] = !rankExpandState[stateKey];
+  const btnSuffix = { books: 'ToggleBooksBtn', users: 'ToggleUsersBtn', overdue: 'ToggleOverdueBtn' }[key];
+  document.getElementById(prefix + btnSuffix).textContent = rankExpandState[stateKey] ? 'Daralt' : 'Tümünü Göster';
+  renderRankingList(prefix, key);
 }
+
+/* -------------------------------------------------------------------------
+   Tüm Kütüphaneler: kütüphaneye göre karşılaştırma tablosu ve grafiği
+   ------------------------------------------------------------------------- */
 
 function renderCompareTab() {
   const data = getData();
