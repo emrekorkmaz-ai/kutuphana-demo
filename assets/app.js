@@ -19,6 +19,7 @@ const PERMISSIONS = [
   { id: 'approve_retirements', label: 'İmha Onaylama' },
   { id: 'manage_books', label: 'Kitap Kaydı Yönetimi' },
   { id: 'manage_staff', label: 'Personel Yönetimi' },
+  { id: 'view_reports', label: 'Kendi Kütüphane Raporu' },
   { id: 'view_reports_all', label: 'Tüm Kütüphaneler Raporu' },
   { id: 'view_feedback', label: 'Geri Bildirimleri Görüntüleme' },
   { id: 'send_notifications', label: 'Toplu Bildirim Gönderme' },
@@ -1285,7 +1286,7 @@ const ADMIN_NAV_ITEMS = [
   { key: 'kitaplar', href: 'kitaplar.html', label: 'Kitaplar', perm: 'manage_books' },
   { key: 'uyeler', href: 'uyeler.html', label: 'Üyeler', perm: ['manage_staff', 'lend_return'] },
   { key: 'kiralama', href: 'kiralama.html', label: 'Ödünç İşlemleri', perm: 'lend_return' },
-  { key: 'rapor', href: 'rapor.html', label: 'Rapor' },
+  { key: 'rapor', href: 'rapor.html', label: 'Rapor', perm: ['view_reports', 'view_reports_all'] },
   { key: 'imha', href: 'imha.html', label: 'Yıpranmış Kitaplar', perm: ['retire_books', 'lend_return', 'approve_retirements'] },
   { key: 'talepler', href: 'talepler.html', label: 'Talepler', perm: ['lend_return', 'view_feedback'] },
   { key: 'personel', href: 'personel.html', label: 'Personel', perm: 'manage_staff' }
@@ -1452,7 +1453,7 @@ async function initAdminPage(activeKey, opts) {
     if (content) content.classList.add('d-none');
     return false;
   }
-  if (opts.requirePermission && staff && !hasPermission(opts.requirePermission)) {
+  if (opts.requirePermission && staff && !hasAnyPermission(opts.requirePermission)) {
     if (guard) {
       guard.classList.remove('d-none');
       guard.innerHTML = `<div class="alert alert-warning">Bu sayfayı görüntülemek için yetkiniz bulunmuyor.</div>`;
