@@ -99,6 +99,8 @@ function boot() {
     renderOverviewBlock('all', 'ALL');
     renderCompareTab();
     renderCategoryPieChart();
+    rankingsByPrefix.all = { books: computeBookRanking('ALL') };
+    renderRankingList('all', 'books');
     renderAuditTab();
     data.libraries.forEach(lib => {
       const prefix = 'lib_' + lib.id;
@@ -142,13 +144,18 @@ function buildTabsAndPanes(admin, data) {
         <h6 class="text-navy">Kategorilere Göre Nüsha Dağılımı</h6>
         <div style="height:320px;"><canvas id="categoryPieChart"></canvas></div>
       </div>
-      <div class="table-responsive-card">
+      <div class="table-responsive-card mb-3">
         <div class="table-responsive">
           <table class="table align-middle">
             <thead><tr><th>Kütüphane</th><th>Kategori Sayısı</th><th>Farklı Kitap Sayısı</th><th>Toplam Nüsha</th><th>Boşta Nüsha</th><th>Üye Sayısı</th><th>Aktif Ödünç</th><th>Gecikmiş</th><th>İmha Onayı Bekleyen</th></tr></thead>
             <tbody id="compareTable"></tbody>
           </table>
         </div>
+      </div>
+      <div class="table-responsive-card">
+        <h6 class="text-navy mb-2">En Çok Ödünç Alınan Kitaplar — Tüm Kütüphaneler</h6>
+        <ol class="list-group list-group-numbered" id="allTopBooksList"></ol>
+        <button class="btn btn-link btn-sm mt-2" onclick="toggleRankExpand('all','books')" id="allToggleBooksBtn">Tümünü Göster</button>
       </div>`);
 
     data.libraries.forEach(lib => {
@@ -617,9 +624,7 @@ function renderLibraryPane(prefix) {
 
   // Sıralı listeler (tüm kayıtlar üzerinden, filtre olmadan — kütüphane bazlı)
   const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === libId; });
-  const bookCounts = {};
-  libRentals.forEach(r => { bookCounts[r.bookId] = (bookCounts[r.bookId] || 0) + 1; });
-  const bookRanking = Object.entries(bookCounts).map(([bid, cnt]) => ({ label: data.books.find(b => b.id === bid)?.title || '—', cnt })).sort((a, c) => c.cnt - a.cnt);
+  const bookRanking = computeBookRanking(libId);
 
   const userCounts = {};
   libRentals.forEach(r => { userCounts[r.userId] = (userCounts[r.userId] || 0) + 1; });
@@ -635,10 +640,22 @@ function renderLibraryPane(prefix) {
   renderRankingList(prefix, 'overdue');
 }
 
+function computeBookRanking(scope) {
+  const data = getData();
+  const rentals = data.rentals.filter(r => {
+    const book = data.books.find(b => b.id === r.bookId);
+    return book && (scope === 'ALL' || book.library === scope);
+  });
+  const counts = {};
+  rentals.forEach(r => { counts[r.bookId] = (counts[r.bookId] || 0) + 1; });
+  return Object.entries(counts).map(([bid, cnt]) => ({ label: data.books.find(b => b.id === bid)?.title || '—', cnt })).sort((a, c) => c.cnt - a.cnt);
+}
+
 function renderRankingList(prefix, key) {
   const list = (rankingsByPrefix[prefix] && rankingsByPrefix[prefix][key]) || [];
   const stateKey = prefix + ':' + key;
-  const shown = rankExpandState[stateKey] ? list : list.slice(0, 10);
+  const defaultCount = key === 'books' ? 5 : 10;
+  const shown = rankExpandState[stateKey] ? list : list.slice(0, defaultCount);
   const elSuffix = { books: 'TopBooksList', users: 'TopUsersList', overdue: 'TopOverdueList' }[key];
   document.getElementById(prefix + elSuffix).innerHTML = shown.map(item => `<li class="list-group-item d-flex justify-content-between"><span>${escapeHtml(item.label)}</span><span class="badge bg-navy">${item.cnt}</span></li>`).join('') || '<li class="list-group-item text-muted">Veri yok.</li>';
 }
