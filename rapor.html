@@ -51,6 +51,18 @@
   </div>
 </div>
 
+<div class="modal fade" id="categoryBreakdownModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy" id="categoryModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body" id="categoryModalBody"></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -126,7 +138,7 @@ function buildTabsAndPanes(admin, data) {
       <div class="table-responsive-card">
         <div class="table-responsive">
           <table class="table align-middle">
-            <thead><tr><th>Kütüphane</th><th>Kitap Türü</th><th>Toplam Nüsha</th><th>Boşta Nüsha</th><th>Üye Sayısı</th><th>Aktif Ödünç</th><th>Gecikmiş</th></tr></thead>
+            <thead><tr><th>Kütüphane</th><th>Kategori Sayısı</th><th>Farklı Kitap Sayısı</th><th>Toplam Nüsha</th><th>Boşta Nüsha</th><th>Üye Sayısı</th><th>Aktif Ödünç</th><th>Gecikmiş</th></tr></thead>
             <tbody id="compareTable"></tbody>
           </table>
         </div>
@@ -600,7 +612,13 @@ function renderCompareTab() {
     const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === lib.id; });
     const active = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays === 0).length;
     const overdue = libRentals.filter(r => !r.returnDate && !r.lost && rentalStatus(r).overdueDays > 0).length;
-    return `<tr><td>${escapeHtml(lib.name)}</td><td>${titles}</td><td>${total}</td><td>${free}</td><td>${members}</td><td>${active}</td><td class="text-danger">${overdue}</td></tr>`;
+    const catSet = new Set();
+    libBooks.forEach(b => { (Array.isArray(b.category) ? b.category : [b.category]).forEach(c => { if (c) catSet.add(c); }); });
+    return `<tr>
+      <td>${escapeHtml(lib.name)}</td>
+      <td><button type="button" class="btn btn-link btn-sm p-0 fw-semibold" onclick="openCategoryBreakdown('${lib.id}')">${catSet.size}</button></td>
+      <td>${titles}</td><td>${total}</td><td>${free}</td><td>${members}</td><td>${active}</td><td class="text-danger">${overdue}</td>
+    </tr>`;
   }).join('');
 
   if (compareChartInstance) compareChartInstance.destroy();
@@ -622,6 +640,59 @@ function renderCompareTab() {
       }
     }
   });
+}
+
+/* Bir kütüphanenin kategori sayısına tıklanınca: her kategoride kaç farklı
+   kitap, kaç nüsha, kaç boşta, kaç aktif ve kaç gecikmiş ödünç var — modal
+   içinde satır satır gösterilir. */
+function openCategoryBreakdown(libId) {
+  const data = getData();
+  const lib = data.libraries.find(l => l.id === libId);
+  const libBooks = data.books.filter(b => b.library === libId);
+  const libRentals = data.rentals.filter(r => { const b = data.books.find(x => x.id === r.bookId); return b && b.library === libId; });
+
+  const perCat = {};
+  libBooks.forEach(b => {
+    (Array.isArray(b.category) ? b.category : [b.category]).forEach(cid => {
+      if (!cid) return;
+      if (!perCat[cid]) perCat[cid] = { bookIds: new Set(), total: 0, stock: 0 };
+      perCat[cid].bookIds.add(b.id);
+      perCat[cid].total += b.total;
+      perCat[cid].stock += b.stock;
+    });
+  });
+
+  const activeByCat = {}, overdueByCat = {};
+  libRentals.forEach(r => {
+    const book = data.books.find(b => b.id === r.bookId);
+    if (!book) return;
+    const st = rentalStatus(r);
+    const isActive = !r.returnDate && !r.lost && st.overdueDays === 0;
+    const isOverdue = !r.returnDate && !r.lost && st.overdueDays > 0;
+    if (!isActive && !isOverdue) return;
+    (Array.isArray(book.category) ? book.category : [book.category]).forEach(cid => {
+      if (!cid) return;
+      if (isActive) activeByCat[cid] = (activeByCat[cid] || 0) + 1;
+      if (isOverdue) overdueByCat[cid] = (overdueByCat[cid] || 0) + 1;
+    });
+  });
+
+  const rows = Object.entries(perCat).map(([cid, v]) => ({
+    name: categoryName(cid) || 'Diğer',
+    books: v.bookIds.size,
+    total: v.total,
+    stock: v.stock,
+    active: activeByCat[cid] || 0,
+    overdue: overdueByCat[cid] || 0
+  })).sort((a, c) => c.total - a.total);
+
+  document.getElementById('categoryModalTitle').textContent = `Kategori Dağılımı — ${lib ? lib.name : ''}`;
+  document.getElementById('categoryModalBody').innerHTML = `
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th>Kategori</th><th>Kitap Sayısı</th><th>Nüsha Sayısı</th><th>Boşta</th><th>Aktif</th><th>Gecikmiş</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${r.books}</td><td>${r.total}</td><td>${r.stock}</td><td>${r.active}</td><td class="text-danger">${r.overdue}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Kategori verisi yok.</td></tr>'}</tbody>
+    </table></div>`;
+  new bootstrap.Modal(document.getElementById('categoryBreakdownModal')).show();
 }
 
 function renderAuditTab() {
