@@ -687,7 +687,13 @@ function loadHeroPhoto(candidates, i) {
 
 function renderHero() {
   const data = getData();
-  loadHeroPhoto(HERO_PHOTO_CANDIDATES);
+  if (data.settings.heroPhoto) {
+    document.getElementById('heroPhoto').src = data.settings.heroPhoto;
+    document.getElementById('heroPhoto').classList.remove('d-none');
+    document.getElementById('heroPhotoFallback').classList.add('d-none');
+  } else {
+    loadHeroPhoto(HERO_PHOTO_CANDIDATES);
+  }
   document.getElementById('heroPhotoFallback').innerHTML = ILLUSTRATIONS.lib1;
 
   const totalCopies = data.books.reduce((s, b) => s + b.total, 0);

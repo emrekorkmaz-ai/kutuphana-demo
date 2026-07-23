@@ -40,6 +40,21 @@
     <!-- SİTE İÇERİĞİ -->
     <div id="stab-content">
       <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">Ana Sayfa Arka Plan Fotoğrafı</h6>
+        <p class="text-muted small mb-2">Bilgisayarınızdan bir fotoğraf yükleyin; ana sayfanın en üstündeki hero görselini değiştirir. Boş bırakılırsa varsayılan görsel/illüstrasyon kullanılır.</p>
+        <div class="d-flex align-items-start gap-3 flex-wrap">
+          <img id="heroPhotoPreview" class="evidence-photo d-none" style="max-width:220px;">
+          <div>
+            <input type="file" id="heroPhotoInput" accept="image/*" class="form-control form-control-sm" onchange="handleHeroPhoto(this)">
+            <div class="mt-2 d-flex gap-2">
+              <button class="btn btn-navy btn-sm" onclick="saveHeroPhoto()">Kaydet</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="removeHeroPhoto()">Kaldır (Varsayılana Dön)</button>
+            </div>
+            <div class="small text-muted mt-1" id="heroPhotoStatus"></div>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive-card mb-3">
         <h6 class="text-navy">Ana Sayfa Carousel</h6>
         <div id="slideEditors"></div>
       </div>
@@ -317,6 +332,7 @@ let editingLibraryId = null;
 })();
 
 function boot() {
+  renderHeroPhotoPreview();
   renderSlideEditors();
   renderEvents();
   renderLibrariesTab();
@@ -340,6 +356,50 @@ function switchSTab(key) {
 }
 
 /* ---------- Site İçeriği ---------- */
+
+let pendingHeroPhoto = null;
+
+function renderHeroPhotoPreview() {
+  const current = getData().settings.heroPhoto;
+  const img = document.getElementById('heroPhotoPreview');
+  if (current) { img.src = current; img.classList.remove('d-none'); }
+  else { img.classList.add('d-none'); }
+}
+
+function handleHeroPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingHeroPhoto = e.target.result;
+    const img = document.getElementById('heroPhotoPreview');
+    img.src = pendingHeroPhoto;
+    img.classList.remove('d-none');
+    document.getElementById('heroPhotoStatus').textContent = 'Yeni fotoğraf seçildi, kaydetmeyi unutmayın.';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveHeroPhoto() {
+  if (!requirePermission('system_admin', 'Site & Sistem Yönetimi')) return;
+  if (!pendingHeroPhoto) { showToast('Önce bir fotoğraf seçin.', 'danger'); return; }
+  const res = await setHeroPhoto(pendingHeroPhoto);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  pendingHeroPhoto = null;
+  document.getElementById('heroPhotoStatus').textContent = 'Kaydedildi. Ana sayfada güncellendi.';
+  showToast('Ana sayfa fotoğrafı güncellendi.', 'success');
+}
+
+async function removeHeroPhoto() {
+  if (!requirePermission('system_admin', 'Site & Sistem Yönetimi')) return;
+  const res = await setHeroPhoto('');
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  pendingHeroPhoto = null;
+  document.getElementById('heroPhotoInput').value = '';
+  renderHeroPhotoPreview();
+  document.getElementById('heroPhotoStatus').textContent = 'Varsayılan görsele dönüldü.';
+  showToast('Ana sayfa varsayılan görsele döndürüldü.', 'success');
+}
 
 function renderSlideEditors() {
   const data = getData();

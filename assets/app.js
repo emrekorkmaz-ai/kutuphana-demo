@@ -297,7 +297,8 @@ async function syncFromSupabase() {
       smtp: settingsRow.smtp || defaultSettings().smtp,
       sms: settingsRow.sms || defaultSettings().sms,
       reportTemplate: settingsRow.report_template || defaultSettings().reportTemplate,
-      policies: settingsRow.policies || defaultSettings().policies
+      policies: settingsRow.policies || defaultSettings().policies,
+      heroPhoto: settingsRow.hero_photo || ''
     },
     activityLogs: (activityLogs.data || []).map(mapActivityLogFromDb),
     notificationLog: (notificationLog.data || []).map(mapNotificationLogFromDb)
@@ -566,6 +567,13 @@ async function updateSettings(section, payload) {
 }
 function getPolicies() {
   return getData().settings.policies || defaultSettings().policies;
+}
+async function setHeroPhoto(dataUrl) {
+  const data = getData();
+  const { error } = await sb.from('settings').update({ hero_photo: dataUrl || '' }).eq('id', true);
+  if (error) return { ok: false, msg: error.message };
+  data.settings.heroPhoto = dataUrl || '';
+  return { ok: true };
 }
 
 /* -------------------------------------------------------------------------
