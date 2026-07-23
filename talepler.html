@@ -37,7 +37,7 @@
       <div class="table-responsive-card">
         <div class="table-responsive">
           <table class="table align-middle">
-            <thead><tr><th>İsim</th><th>Telefon</th><th>Mesaj</th><th>Tarih</th></tr></thead>
+            <thead><tr><th>İsim</th><th>Telefon</th><th>Mesaj</th><th>Tarih</th><th>Durum</th><th></th></tr></thead>
             <tbody id="feedbackTable"></tbody>
           </table>
         </div>
@@ -78,8 +78,19 @@ function switchReqTab(key) {
 function renderFeedbackTable() {
   const data = getData();
   document.getElementById('feedbackTable').innerHTML = [...data.feedback].sort((a, c) => new Date(c.date) - new Date(a.date)).map(f => `
-    <tr><td>${escapeHtml(f.name)}</td><td>${escapeHtml(f.phone)}</td><td>${escapeHtml(f.message)}</td><td>${formatDateTR(f.date)}</td></tr>
-  `).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
+    <tr class="${f.read ? '' : 'fw-semibold'}">
+      <td>${escapeHtml(f.name)}</td><td>${escapeHtml(f.phone)}</td><td>${escapeHtml(f.message)}</td><td>${formatDateTR(f.date)}</td>
+      <td>${f.read ? '<span class="badge bg-secondary">Okundu</span>' : '<span class="badge bg-orange">Okunmadı</span>'}</td>
+      <td><button class="btn btn-sm btn-outline-secondary" onclick="toggleFeedbackRead('${f.id}', ${!f.read})">${f.read ? 'Okunmadı İşaretle' : 'Okundu İşaretle'}</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
+}
+
+async function toggleFeedbackRead(id, read) {
+  const res = await setFeedbackRead(id, read);
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  renderFeedbackTable();
+  renderAdminNavbar('talepler');
 }
 
 function renderRequests() {

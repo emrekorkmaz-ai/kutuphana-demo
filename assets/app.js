@@ -285,7 +285,7 @@ async function syncFromSupabase() {
     rentals: (rentals.data || []).map(mapRentalFromDb),
     retirements: (retirements.data || []).map(mapRetirementFromDb),
     events: (events.data || []).map(mapEventFromDb),
-    feedback: (feedback.data || []).map(f => ({ id: f.id, name: f.name, phone: f.phone, message: f.message, date: f.date })),
+    feedback: (feedback.data || []).map(f => ({ id: f.id, name: f.name, phone: f.phone, message: f.message, date: f.date, read: !!f.read })),
     requests: (requests.data || []).map(mapRequestFromDb),
     sliderContent: (sliderContent.data || []).map(mapSliderFromDb),
     formFields: formFieldsGrouped,
@@ -1213,8 +1213,16 @@ async function addFeedback(fb) {
   const row = { name: fb.name, phone: fb.phone || '', message: fb.message };
   const { data, error } = await sb.from('feedback').insert(row).select().single();
   if (error) return;
-  getData().feedback.push({ id: data.id, name: data.name, phone: data.phone, message: data.message, date: data.date });
+  getData().feedback.push({ id: data.id, name: data.name, phone: data.phone, message: data.message, date: data.date, read: !!data.read });
   await logActivity('member', fb.name || '—', 'Geri Bildirim Gönderildi', `${fb.name || 'Bir ziyaretçi'} geri bildirim gönderdi: "${fb.message}"`);
+}
+async function setFeedbackRead(id, read) {
+  const fb = getData().feedback.find(f => f.id === id);
+  if (!fb) return { ok: false, msg: 'Geri bildirim bulunamadı.' };
+  const { error } = await sb.from('feedback').update({ read }).eq('id', id);
+  if (error) return { ok: false, msg: error.message };
+  fb.read = read;
+  return { ok: true };
 }
 async function addRequest(req) {
   const row = { type: req.type, user_id: req.userId, rental_id: req.rentalId || null, book_title: req.bookTitle || null, note: req.note || '' };
@@ -1305,13 +1313,15 @@ function renderAdminNavbar(activeKey) {
   const pendingApprovals = staff && hasPermission('approve_retirements')
     ? getData().retirements.filter(r => r.status === 'pending').length : 0;
   const pendingRequests = staff ? getData().requests.filter(r => r.status === 'pending').length : 0;
+  const unreadFeedback = staff && hasPermission('view_feedback') ? getData().feedback.filter(f => !f.read).length : 0;
+  const talepBadgeCount = pendingRequests + unreadFeedback;
 
   let links = '';
   if (staff) {
     links = ADMIN_NAV_ITEMS.filter(item => hasAnyPermission(item.perm)).map(item => {
       let badge = '';
       if (item.key === 'imha' && pendingApprovals > 0) badge = ` <span class="badge bg-orange ms-1">${pendingApprovals}</span>`;
-      if (item.key === 'talepler' && pendingRequests > 0) badge = ` <span class="badge bg-orange ms-1">${pendingRequests}</span>`;
+      if (item.key === 'talepler' && talepBadgeCount > 0) badge = ` <span class="badge bg-orange ms-1">${talepBadgeCount}</span>`;
       return `<li class="nav-item"><a class="nav-link ${item.key === activeKey ? 'active' : ''}" href="${item.href}">${item.label}${badge}</a></li>`;
     }).join('');
 
