@@ -1376,8 +1376,7 @@ function renderAdminNavbar(activeKey) {
   <nav class="navbar navbar-expand-lg navbar-dark app-navbar sticky-top">
     <div class="container-fluid">
       <a class="navbar-brand d-flex align-items-center gap-2" href="panel.html">
-        <img src="assets/yenisehir-logo.svg" alt="Mersin Yenişehir Belediyesi" class="brand-logo">
-        <span class="d-none d-md-inline">Yenişehir Kütüphane Sistemi</span>
+        <img src="assets/yenisehir-logo.svg" alt="Yenişehir Kütüphane Sistemi" class="brand-logo">
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav">
         <span class="navbar-toggler-icon"></span>
