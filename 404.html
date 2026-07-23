@@ -12,15 +12,7 @@
 <link href="assets/style.css" rel="stylesheet">
 <style>
 .notfound-wrap { min-height: 60vh; display: flex; align-items: center; }
-.notfound-num {
-  font-family: 'Lexend', sans-serif;
-  font-weight: 800;
-  font-size: clamp(5rem, 16vw, 9rem);
-  line-height: 1;
-  color: var(--lacivert);
-  letter-spacing: -.02em;
-}
-.notfound-illustration { max-width: 220px; margin: 0 auto 1.5rem; }
+.notfound-illustration { max-width: 480px; width: 100%; margin: 0 auto 1.5rem; display: block; }
 .notfound-actions .btn { min-width: 180px; }
 </style>
 </head>
@@ -31,18 +23,7 @@
 
 <div class="container notfound-wrap">
   <div class="text-center mx-auto" style="max-width:560px;">
-    <div class="notfound-illustration">
-      <svg viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg">
-        <rect x="70" y="60" width="160" height="120" rx="4" fill="none" stroke="#164194" stroke-width="3"/>
-        <rect x="90" y="80" width="30" height="40" fill="#3AAA35"/>
-        <rect x="135" y="80" width="30" height="40" fill="#EF7D00"/>
-        <rect x="180" y="80" width="30" height="40" fill="#164194" opacity=".25"/>
-        <rect x="90" y="135" width="120" height="12" fill="#164194" opacity=".6"/>
-        <rect x="50" y="180" width="200" height="8" rx="2" fill="#164194" opacity=".18"/>
-        <text x="150" y="45" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="700" font-size="28" fill="#EF7D00">?</text>
-      </svg>
-    </div>
-    <div class="notfound-num">404</div>
+    <img src="assets/404-illustration.png" alt="Sayfa bulunamadı" class="notfound-illustration">
     <h1 class="text-navy fw-bold mt-2 mb-2" style="font-size:1.6rem;">Aradığınız sayfa bulunamadı</h1>
     <p class="text-muted mb-4">Bu sayfa taşınmış, kaldırılmış ya da hiç var olmamış olabilir. Adresi kontrol edin ya da aşağıdaki bağlantılardan devam edin.</p>
     <div class="d-flex flex-wrap justify-content-center gap-2 notfound-actions">
