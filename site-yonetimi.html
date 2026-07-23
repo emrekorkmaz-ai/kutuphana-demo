@@ -132,8 +132,15 @@
           </div>
           <div class="col-md-4"><input type="text" id="libWeekday" class="form-control form-control-sm" placeholder="Hafta içi saatleri (örn. 08:00 - 17:00)"></div>
           <div class="col-md-4"><input type="text" id="libWeekend" class="form-control form-control-sm" placeholder="Hafta sonu saatleri"></div>
-          <div class="col-md-8"><input type="text" id="libPhoto" class="form-control form-control-sm" placeholder="Fotoğraf URL (halka açık sitedeki kütüphane kartında görünür)"></div>
-          <div class="col-md-4 d-flex gap-2">
+          <div class="col-md-8">
+            <label class="form-label small mb-1">Fotoğraf (halka açık sitedeki kütüphane kartında görünür)</label>
+            <div class="d-flex align-items-center gap-2">
+              <img id="libPhotoPreview" class="d-none" style="width:64px;height:48px;object-fit:cover;border-radius:4px;">
+              <input type="file" id="libPhotoInput" accept="image/*" class="form-control form-control-sm" onchange="handleLibraryPhoto(this)">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="libPhotoRemoveBtn" onclick="removeLibraryPhoto()">Kaldır</button>
+            </div>
+          </div>
+          <div class="col-md-4 d-flex gap-2 align-items-end">
             <button class="btn btn-navy btn-sm flex-fill" id="libSaveBtn" onclick="saveLibrary()">Kütüphane Ekle</button>
             <button class="btn btn-secondary btn-sm d-none" id="libCancelBtn" onclick="cancelLibraryEdit()">Vazgeç</button>
           </div>
@@ -773,6 +780,29 @@ function renderLibrariesTab() {
     </tr>`).join('') || '<tr><td colspan="8" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
 }
 
+let libPhotoDataUrl = '';
+
+function handleLibraryPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    libPhotoDataUrl = e.target.result;
+    const img = document.getElementById('libPhotoPreview');
+    img.src = libPhotoDataUrl;
+    img.classList.remove('d-none');
+    document.getElementById('libPhotoRemoveBtn').classList.remove('d-none');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLibraryPhoto() {
+  libPhotoDataUrl = '';
+  document.getElementById('libPhotoInput').value = '';
+  document.getElementById('libPhotoPreview').classList.add('d-none');
+  document.getElementById('libPhotoRemoveBtn').classList.add('d-none');
+}
+
 function editLibrary(id) {
   const data = getData();
   const lib = data.libraries.find(l => l.id === id);
@@ -785,7 +815,11 @@ function editLibrary(id) {
   document.getElementById('libStatus').value = lib.status || 'active';
   document.getElementById('libWeekday').value = lib.weekday || '';
   document.getElementById('libWeekend').value = lib.weekend || '';
-  document.getElementById('libPhoto').value = lib.photoUrl || '';
+  libPhotoDataUrl = lib.photoUrl || '';
+  document.getElementById('libPhotoInput').value = '';
+  const img = document.getElementById('libPhotoPreview');
+  if (libPhotoDataUrl) { img.src = libPhotoDataUrl; img.classList.remove('d-none'); document.getElementById('libPhotoRemoveBtn').classList.remove('d-none'); }
+  else { img.classList.add('d-none'); document.getElementById('libPhotoRemoveBtn').classList.add('d-none'); }
   document.getElementById('libSaveBtn').textContent = 'Güncelle';
   document.getElementById('libCancelBtn').classList.remove('d-none');
 }
@@ -799,7 +833,7 @@ function cancelLibraryEdit() {
   document.getElementById('libStatus').value = 'active';
   document.getElementById('libWeekday').value = '';
   document.getElementById('libWeekend').value = '';
-  document.getElementById('libPhoto').value = '';
+  removeLibraryPhoto();
   document.getElementById('libSaveBtn').textContent = 'Kütüphane Ekle';
   document.getElementById('libCancelBtn').classList.add('d-none');
 }
@@ -814,7 +848,7 @@ async function saveLibrary() {
     status: document.getElementById('libStatus').value,
     weekday: document.getElementById('libWeekday').value.trim(),
     weekend: document.getElementById('libWeekend').value.trim(),
-    photoUrl: document.getElementById('libPhoto').value.trim()
+    photoUrl: libPhotoDataUrl
   };
   const res = editingLibraryId ? await updateLibrary(editingLibraryId, payload) : await addLibrary(payload);
   if (!res.ok) { showToast(res.msg, 'danger'); return; }
