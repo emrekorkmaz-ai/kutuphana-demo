@@ -1327,7 +1327,7 @@ const ADMIN_NAV_ITEMS = [
   { key: 'index', href: 'panel.html', label: 'Ana Sayfa' },
   { key: 'kitaplar', href: 'kitaplar.html', label: 'Kitaplar', perm: 'manage_books' },
   { key: 'uyeler', href: 'uyeler.html', label: 'Üyeler', perm: ['manage_staff', 'lend_return'] },
-  { key: 'kiralama', href: 'kiralama.html', label: 'Ödünç İşlemleri', perm: 'lend_return' },
+  { key: 'odunc', href: 'odunc.html', label: 'Ödünç İşlemleri', perm: 'lend_return' },
   { key: 'rapor', href: 'rapor.html', label: 'Rapor', perm: ['view_reports', 'view_reports_all'] },
   { key: 'imha', href: 'imha.html', label: 'Yıpranmış Kitaplar', perm: ['retire_books', 'lend_return', 'approve_retirements'] },
   { key: 'talepler', href: 'talepler.html', label: 'Talepler', perm: ['lend_return', 'view_feedback'] },
@@ -1481,7 +1481,7 @@ function subscribeNewsletter() {
 
    NOT: Artık asenkrondur (Supabase'den veri çekmesi gerekir). Her sayfanın
    kendi <script> bloğu şu şekilde çağırmalıdır:
-     (async () => { if (await initAdminPage('kiralama', {...})) boot(); })();
+     (async () => { if (await initAdminPage('odunc', {...})) boot(); })();
    ------------------------------------------------------------------------- */
 
 async function initAdminPage(activeKey, opts) {
