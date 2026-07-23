@@ -55,6 +55,43 @@
         </div>
       </div>
       <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">Ana Sayfa Metinleri</h6>
+        <p class="text-muted small mb-2">Boş bırakılan alanlar sayfadaki varsayılan metni kullanmaya devam eder.</p>
+
+        <div class="fw-semibold small text-navy mb-1">Hero (en üst bölüm)</div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6"><input type="text" id="ctHeroTitle" class="form-control form-control-sm" placeholder="Başlık (örn. Bilgiye Açılan Kapınız)"></div>
+          <div class="col-md-6"><input type="text" id="ctHeroSubtitle" class="form-control form-control-sm" placeholder="Alt başlık (örn. 3 Kütüphane, Tek Deneyim)"></div>
+          <div class="col-12"><textarea id="ctHeroLead" class="form-control form-control-sm" rows="2" placeholder="Açıklama paragrafı"></textarea></div>
+          <div class="col-12"><button class="btn btn-navy btn-sm" onclick="saveContentSection('hero', {title:'ctHeroTitle', subtitle:'ctHeroSubtitle', lead:'ctHeroLead'})">Hero Metnini Kaydet</button></div>
+        </div>
+
+        <div class="fw-semibold small text-navy mb-1">Kapanış İfadesi ("Kütüphaneler, amaçla tasarlandı.")</div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6"><input type="text" id="ctSplitTitle" class="form-control form-control-sm" placeholder="Başlık 1. satır (örn. Kütüphaneler,)"></div>
+          <div class="col-md-6"><input type="text" id="ctSplitAccent" class="form-control form-control-sm" placeholder="Başlık 2. satır (örn. amaçla tasarlandı.)"></div>
+          <div class="col-12"><textarea id="ctSplitText" class="form-control form-control-sm" rows="2" placeholder="Açıklama paragrafı"></textarea></div>
+          <div class="col-12"><button class="btn btn-navy btn-sm" onclick="saveContentSection('splitStatement', {title:'ctSplitTitle', titleAccent:'ctSplitAccent', text:'ctSplitText'})">Kapanış İfadesini Kaydet</button></div>
+        </div>
+
+        <div class="fw-semibold small text-navy mb-1">Hakkımızda</div>
+        <div class="row g-2">
+          <div class="col-12"><input type="text" id="ctAboutTitle" class="form-control form-control-sm" placeholder="Başlık (örn. Hakkımızda)"></div>
+          <div class="col-12"><textarea id="ctAboutP1" class="form-control form-control-sm" rows="2" placeholder="1. paragraf"></textarea></div>
+          <div class="col-12"><textarea id="ctAboutP2" class="form-control form-control-sm" rows="2" placeholder="2. paragraf"></textarea></div>
+          <div class="col-12"><button class="btn btn-navy btn-sm" onclick="saveContentSection('about', {title:'ctAboutTitle', paragraph1:'ctAboutP1', paragraph2:'ctAboutP2'})">Hakkımızda Metnini Kaydet</button></div>
+        </div>
+      </div>
+
+      <div class="table-responsive-card mb-3">
+        <h6 class="text-navy">Hizmetlerimiz Kartları</h6>
+        <p class="text-muted small mb-2">Ana sayfadaki "Hizmetlerimiz" bölümünde görünen kartlar. Sıralarını değiştirmek için yukarı/aşağı oklarını kullanın.</p>
+        <div id="servicesEditor" class="mb-3"></div>
+        <button class="btn btn-outline-navy btn-sm" onclick="addServiceRow()"><i class="bi bi-plus-lg"></i> Yeni Kart Ekle</button>
+        <button class="btn btn-navy btn-sm ms-2" onclick="saveServices()">Hizmetlerimizi Kaydet</button>
+      </div>
+
+      <div class="table-responsive-card mb-3">
         <h6 class="text-navy">Ana Sayfa Carousel</h6>
         <div id="slideEditors"></div>
       </div>
@@ -319,6 +356,20 @@
   </div>
 </div>
 
+<div class="modal fade" id="iconPickerModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-navy">İkon Seç</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex flex-wrap gap-2" id="iconPickerGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/supabase-config.js"></script>
@@ -333,6 +384,8 @@ let editingLibraryId = null;
 
 function boot() {
   renderHeroPhotoPreview();
+  renderContentTextInputs();
+  renderServicesEditor();
   renderSlideEditors();
   renderEvents();
   renderLibrariesTab();
@@ -358,6 +411,99 @@ function switchSTab(key) {
 /* ---------- Site İçeriği ---------- */
 
 let pendingHeroPhoto = null;
+let servicesDraft = [];
+
+function renderContentTextInputs() {
+  const content = getData().settings.siteContent || {};
+  const hero = content.hero || {};
+  const split = content.splitStatement || {};
+  const about = content.about || {};
+  document.getElementById('ctHeroTitle').value = hero.title || '';
+  document.getElementById('ctHeroSubtitle').value = hero.subtitle || '';
+  document.getElementById('ctHeroLead').value = hero.lead || '';
+  document.getElementById('ctSplitTitle').value = split.title || '';
+  document.getElementById('ctSplitAccent').value = split.titleAccent || '';
+  document.getElementById('ctSplitText').value = split.text || '';
+  document.getElementById('ctAboutTitle').value = about.title || '';
+  document.getElementById('ctAboutP1').value = about.paragraph1 || '';
+  document.getElementById('ctAboutP2').value = about.paragraph2 || '';
+}
+
+async function saveContentSection(sectionKey, fieldMap) {
+  if (!requirePermission('system_admin', 'Site & Sistem Yönetimi')) return;
+  const payload = {};
+  Object.entries(fieldMap).forEach(([key, elId]) => { payload[key] = document.getElementById(elId).value.trim(); });
+  const current = getData().settings.siteContent || {};
+  const res = await updateSettings('siteContent', { ...current, [sectionKey]: payload });
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  showToast('Kaydedildi. Ana sayfada güncellendi.', 'success');
+}
+
+/* ---------- Hizmetlerimiz kartları ---------- */
+
+function renderServicesEditor() {
+  const content = getData().settings.siteContent || {};
+  servicesDraft = JSON.parse(JSON.stringify((content.services && content.services.length) ? content.services : DEFAULT_SERVICES));
+  paintServicesEditor();
+}
+
+function paintServicesEditor() {
+  document.getElementById('servicesEditor').innerHTML = servicesDraft.map((s, i) => `
+    <div class="d-flex align-items-start gap-2 border-bottom py-2">
+      <button type="button" class="btn btn-outline-navy btn-sm" style="width:44px;height:38px;" onclick="openIconPicker(${i})" title="İkon seç">
+        <i class="bi ${s.icon || 'bi-question-circle'}"></i>
+      </button>
+      <input type="text" class="form-control form-control-sm" style="max-width:220px;" placeholder="Başlık" value="${escapeHtml(s.title || '')}" oninput="servicesDraft[${i}].title=this.value">
+      <input type="text" class="form-control form-control-sm" placeholder="Açıklama" value="${escapeHtml(s.desc || '')}" oninput="servicesDraft[${i}].desc=this.value">
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" ${i === 0 ? 'disabled' : ''} onclick="moveServiceRow(${i}, -1)" title="Yukarı"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="btn btn-outline-secondary" ${i === servicesDraft.length - 1 ? 'disabled' : ''} onclick="moveServiceRow(${i}, 1)" title="Aşağı"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="btn btn-outline-danger" onclick="removeServiceRow(${i})" title="Sil"><i class="bi bi-trash"></i></button>
+      </div>
+    </div>`).join('') || '<p class="text-muted small">Henüz kart yok.</p>';
+}
+
+function addServiceRow() {
+  servicesDraft.push({ icon: 'bi-star', title: '', desc: '' });
+  paintServicesEditor();
+}
+function removeServiceRow(i) {
+  servicesDraft.splice(i, 1);
+  paintServicesEditor();
+}
+function moveServiceRow(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= servicesDraft.length) return;
+  [servicesDraft[i], servicesDraft[j]] = [servicesDraft[j], servicesDraft[i]];
+  paintServicesEditor();
+}
+
+let iconPickerRow = null;
+function openIconPicker(rowIndex) {
+  iconPickerRow = rowIndex;
+  document.getElementById('iconPickerGrid').innerHTML = ICON_PACK.map(icon => `
+    <button type="button" class="btn btn-outline-secondary" style="width:44px;height:44px;" onclick="selectIcon('${icon}')" title="${icon}">
+      <i class="bi ${icon}"></i>
+    </button>`).join('');
+  new bootstrap.Modal(document.getElementById('iconPickerModal')).show();
+}
+function selectIcon(icon) {
+  if (iconPickerRow !== null) servicesDraft[iconPickerRow].icon = icon;
+  paintServicesEditor();
+  bootstrap.Modal.getInstance(document.getElementById('iconPickerModal')).hide();
+}
+
+async function saveServices() {
+  if (!requirePermission('system_admin', 'Site & Sistem Yönetimi')) return;
+  const cleaned = servicesDraft.filter(s => s.title.trim() || s.desc.trim());
+  if (!cleaned.length) { showToast('En az bir kart olmalı.', 'danger'); return; }
+  const current = getData().settings.siteContent || {};
+  const res = await updateSettings('siteContent', { ...current, services: cleaned });
+  if (!res.ok) { showToast(res.msg, 'danger'); return; }
+  servicesDraft = cleaned;
+  paintServicesEditor();
+  showToast('Hizmetlerimiz kartları kaydedildi.', 'success');
+}
 
 function renderHeroPhotoPreview() {
   const current = getData().settings.heroPhoto;

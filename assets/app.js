@@ -29,6 +29,31 @@ const PERMISSIONS = [
 const BOOK_SOURCES = ['Satın Alma', 'İhale', 'Bağış', 'Diğer'];
 const RETIREMENT_REASONS = ['Yıprandı', 'Kayboldu', 'Su Hasarı', 'Diğer'];
 
+/* Ana sayfa "Hizmetlerimiz" bölümünün varsayılan kartları — Site Yönetimi'nden
+   özelleştirilmemişse (settings.site_content.services boşsa) bunlar kullanılır. */
+const DEFAULT_SERVICES = [
+  { icon: 'bi-wifi', title: 'Ücretsiz Wi-Fi', desc: 'Tüm kütüphanelerimizde ücretsiz internet' },
+  { icon: 'bi-cup-hot', title: 'Çalışma Alanları', desc: 'Sessiz ve konforlu çalışma alanları' },
+  { icon: 'bi-people', title: 'Grup Çalışma Odaları', desc: 'Gruplar için özel çalışma odaları' },
+  { icon: 'bi-universal-access', title: 'Erişilebilir Hizmetler', desc: 'Herkes için erişilebilir kütüphane hizmetleri' },
+  { icon: 'bi-question-circle', title: 'Danışma Hizmeti', desc: 'Sorularınız için her zaman yanınızdayız' }
+];
+
+/* Hizmetlerimiz kartları ve benzer içerikler için seçilebilir ikon paketi
+   (Bootstrap Icons — zaten tüm sayfalarda CDN üzerinden yüklü, yeni bir
+   kütüphane eklemeye gerek yok). */
+const ICON_PACK = [
+  'bi-wifi', 'bi-cup-hot', 'bi-people', 'bi-universal-access', 'bi-question-circle',
+  'bi-book', 'bi-book-half', 'bi-journal-bookmark', 'bi-journals', 'bi-mortarboard',
+  'bi-laptop', 'bi-printer', 'bi-headphones', 'bi-mic', 'bi-camera',
+  'bi-clock', 'bi-calendar-event', 'bi-calendar-check', 'bi-geo-alt', 'bi-telephone',
+  'bi-envelope', 'bi-house', 'bi-shield-check', 'bi-heart', 'bi-star',
+  'bi-gift', 'bi-lightbulb', 'bi-puzzle', 'bi-palette', 'bi-easel',
+  'bi-music-note-beamed', 'bi-controller', 'bi-globe', 'bi-translate', 'bi-chat-dots',
+  'bi-person-check', 'bi-person-plus', 'bi-people-fill', 'bi-building', 'bi-bank',
+  'bi-search', 'bi-qr-code', 'bi-printer-fill', 'bi-file-earmark-text', 'bi-award'
+];
+
 /* Kitap/Üye/Personel formlarında hâlihazırda bulunan sabit alanlar (referans + etiket düzenleme için). */
 const CORE_FIELDS = {
   book: [
@@ -298,7 +323,8 @@ async function syncFromSupabase() {
       sms: settingsRow.sms || defaultSettings().sms,
       reportTemplate: settingsRow.report_template || defaultSettings().reportTemplate,
       policies: settingsRow.policies || defaultSettings().policies,
-      heroPhoto: settingsRow.hero_photo || ''
+      heroPhoto: settingsRow.hero_photo || '',
+      siteContent: settingsRow.site_content || {}
     },
     activityLogs: (activityLogs.data || []).map(mapActivityLogFromDb),
     notificationLog: (notificationLog.data || []).map(mapNotificationLogFromDb)
@@ -559,7 +585,7 @@ async function logRentalEmail(rentalId, subject, body) {
 async function updateSettings(section, payload) {
   const data = getData();
   data.settings[section] = { ...(data.settings[section] || {}), ...payload };
-  const columnBySection = { smtp: 'smtp', sms: 'sms', reportTemplate: 'report_template', policies: 'policies' };
+  const columnBySection = { smtp: 'smtp', sms: 'sms', reportTemplate: 'report_template', policies: 'policies', siteContent: 'site_content' };
   const column = columnBySection[section];
   const { error } = await sb.from('settings').update({ [column]: data.settings[section] }).eq('id', true);
   if (error) return { ok: false, msg: error.message };

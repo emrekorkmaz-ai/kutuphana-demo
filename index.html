@@ -438,8 +438,8 @@ textarea:focus-visible,
 
     <div class="hero-center-head text-center mx-auto">
       <span class="hero-eyebrow hero-anim hero-anim-1"><i class="bi bi-bank"></i> Mersin Yenişehir Belediyesi</span>
-      <h1 class="hero-anim hero-anim-2">Bilgiye Açılan Kapınız<span class="accent">3 Kütüphane, Tek Deneyim</span></h1>
-      <p class="lead-text hero-anim hero-anim-3">Üç farklı noktada, aynı kaliteli hizmet anlayışıyla bilgiye, kültüre ve geleceğe birlikte açılıyoruz.</p>
+      <h1 class="hero-anim hero-anim-2"><span id="heroTitle">Bilgiye Açılan Kapınız</span><span class="accent" id="heroSubtitle">3 Kütüphane, Tek Deneyim</span></h1>
+      <p class="lead-text hero-anim hero-anim-3" id="heroLead">Üç farklı noktada, aynı kaliteli hizmet anlayışıyla bilgiye, kültüre ve geleceğe birlikte açılıyoruz.</p>
 
       <form class="hero-search hero-search-centered input-group mt-4 hero-anim hero-anim-4" role="search" onsubmit="event.preventDefault(); doHeroSearch();">
         <label for="heroSearchInput" class="visually-hidden">Kitap, yazar veya konu ara</label>
@@ -466,10 +466,10 @@ textarea:focus-visible,
 
     <div class="hero-split-statement row g-4 align-items-start">
       <div class="col-md-6">
-        <h2 class="hero-split-title">Kütüphaneler,<span>amaçla tasarlandı.</span></h2>
+        <h2 class="hero-split-title"><span id="splitTitle">Kütüphaneler,</span><span id="splitTitleAccent">amaçla tasarlandı.</span></h2>
       </div>
       <div class="col-md-6">
-        <p class="hero-split-text">Sessiz çalışma alanlarından dijital kataloğa; öğrenciden emekliye her yaştan hemşehrimiz için erişilebilir ve modern bir kütüphanecilik deneyimi sunuyoruz.</p>
+        <p class="hero-split-text" id="splitText">Sessiz çalışma alanlarından dijital kataloğa; öğrenciden emekliye her yaştan hemşehrimiz için erişilebilir ve modern bir kütüphanecilik deneyimi sunuyoruz.</p>
       </div>
     </div>
 
@@ -531,9 +531,9 @@ textarea:focus-visible,
     <div class="row align-items-center g-4">
       <div class="col-lg-7">
         <div class="section-eyebrow">Kim olduğumuz</div>
-        <h3 class="section-title mb-3">Hakkımızda</h3>
-        <p class="text-muted">Mersin Yenişehir Belediyesi Kütüphane Takip Sistemi, ilçemizdeki halk kütüphanelerini tek bir çatı altında buluşturarak vatandaşlarımıza modern ve erişilebilir bir kütüphanecilik hizmeti sunmayı amaçlar. Nuri Ulusu ve Ülkü Ongun Kütüphanelerimiz hâlihazırda hizmet vermekte, Leyla Kürk Kütüphanemiz ise yakında ilçemize kazandırılacaktır.</p>
-        <p class="text-muted mb-0">Kütüphanelerimiz; öğrencilerimizden emeklilerimize, her yaştan hemşehrimize ücretsiz ve herkese açık şekilde hizmet vermektedir.</p>
+        <h3 class="section-title mb-3" id="aboutTitle">Hakkımızda</h3>
+        <p class="text-muted" id="aboutP1">Mersin Yenişehir Belediyesi Kütüphane Takip Sistemi, ilçemizdeki halk kütüphanelerini tek bir çatı altında buluşturarak vatandaşlarımıza modern ve erişilebilir bir kütüphanecilik hizmeti sunmayı amaçlar. Nuri Ulusu ve Ülkü Ongun Kütüphanelerimiz hâlihazırda hizmet vermekte, Leyla Kürk Kütüphanemiz ise yakında ilçemize kazandırılacaktır.</p>
+        <p class="text-muted mb-0" id="aboutP2">Kütüphanelerimiz; öğrencilerimizden emeklilerimize, her yaştan hemşehrimize ücretsiz ve herkese açık şekilde hizmet vermektedir.</p>
       </div>
       <div class="col-lg-5">
         <div class="row g-3" id="aboutStats"></div>
@@ -843,13 +843,8 @@ function openLibraryModal(id) {
 /* ---------- Hizmetlerimiz ---------- */
 
 function renderServices() {
-  const services = [
-    { icon: 'bi-wifi', title: 'Ücretsiz Wi-Fi', desc: 'Tüm kütüphanelerimizde ücretsiz internet' },
-    { icon: 'bi-cup-hot', title: 'Çalışma Alanları', desc: 'Sessiz ve konforlu çalışma alanları' },
-    { icon: 'bi-people', title: 'Grup Çalışma Odaları', desc: 'Gruplar için özel çalışma odaları' },
-    { icon: 'bi-universal-access', title: 'Erişilebilir Hizmetler', desc: 'Herkes için erişilebilir kütüphane hizmetleri' },
-    { icon: 'bi-question-circle', title: 'Danışma Hizmeti', desc: 'Sorularınız için her zaman yanınızdayız' }
-  ];
+  const custom = getData().settings.siteContent.services;
+  const services = (custom && custom.length) ? custom : DEFAULT_SERVICES;
   document.getElementById('servicesGrid').innerHTML = services.map(s => `
     <div class="col-6 col-md-4">
       <div class="service-item">
@@ -919,10 +914,32 @@ async function submitFeedback() {
   showToast('Geri bildiriminiz alınmıştır. Teşekkür ederiz.', 'success');
 }
 
+/* Site Yönetimi'nden özelleştirilmiş metinler varsa varsayılan HTML metnini
+   bunlarla değiştirir; hiçbiri girilmemişse sayfadaki varsayılan metinler
+   olduğu gibi kalır. */
+function renderSiteContentOverrides() {
+  const content = getData().settings.siteContent || {};
+  const hero = content.hero || {};
+  if (hero.title) document.getElementById('heroTitle').textContent = hero.title;
+  if (hero.subtitle) document.getElementById('heroSubtitle').textContent = hero.subtitle;
+  if (hero.lead) document.getElementById('heroLead').textContent = hero.lead;
+
+  const split = content.splitStatement || {};
+  if (split.title) document.getElementById('splitTitle').textContent = split.title;
+  if (split.titleAccent) document.getElementById('splitTitleAccent').textContent = split.titleAccent;
+  if (split.text) document.getElementById('splitText').textContent = split.text;
+
+  const about = content.about || {};
+  if (about.title) document.getElementById('aboutTitle').textContent = about.title;
+  if (about.paragraph1) document.getElementById('aboutP1').textContent = about.paragraph1;
+  if (about.paragraph2) document.getElementById('aboutP2').textContent = about.paragraph2;
+}
+
 (async () => {
   await initPublicPage();
   renderPublicNavbar('anasayfa');
   renderPublicFooter();
+  renderSiteContentOverrides();
   renderHero();
   renderQuickActions();
   renderFeaturedBooks();
