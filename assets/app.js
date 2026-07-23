@@ -1455,7 +1455,7 @@ function renderPublicFooter() {
         </div>
       </div>
       <div class="d-flex flex-wrap justify-content-between align-items-center border-top border-light border-opacity-10 pt-4">
-        <div class="small text-white-50">Mersin Yenişehir Belediyesi Kütüphane Takip Sistemi · <a href="personel-girisi.html" class="text-white-50">Personel Girişi</a></div>
+        <div class="small text-white-50">Mersin Yenişehir Belediyesi Kütüphane Takip Sistemi · <a href="personel-girisi.html" class="text-white-50">Personel Girişi</a> · <a href="https://www.yenisehir.bel.tr" target="_blank" rel="noopener" class="text-white-50">Ana Sitemiz</a></div>
         <div class="d-flex align-items-center gap-3">
           <span class="small text-white-50 me-1">Bizi Takip Edin</span>
           <a href="#" class="social-icon" title="Yakında"><i class="bi bi-facebook"></i></a>
@@ -1464,6 +1464,7 @@ function renderPublicFooter() {
           <a href="#" class="social-icon" title="Yakında"><i class="bi bi-youtube"></i></a>
         </div>
       </div>
+      <div class="text-center small text-white-50 mt-3 pt-3 border-top border-light border-opacity-10">© 2026 Mersin Yenişehir Belediye Başkanlığı Bilgi İşlem Müdürlüğü</div>
     </div>
   </footer>`;
 }
