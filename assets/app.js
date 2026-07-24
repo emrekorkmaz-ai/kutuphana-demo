@@ -333,6 +333,86 @@ async function syncFromSupabase() {
   return _dataCache;
 }
 
+/* -------------------------------------------------------------------------
+   Halka açık sayfalar için hafif senkronizasyon.
+
+   syncFromSupabase() personel paneli için 20 tabloyu tam çeker (roller,
+   personel işlem geçmişi, retiring/log tabloları vb.) — bunlar ziyaretçiye
+   hiç gösterilmez ve RLS zaten anonim isteklere boş döner, ama her biri yine
+   de bir ağ gidiş-dönüşü demektir. Bu fonksiyon yalnızca herkese açık
+   sayfaların (index, üye girişi/başvurusu, 404) gerçekten kullandığı
+   tabloları çeker; kütüphane/kitap/kategori/etkinlik/ayarlar gibi az
+   değişen veriler her sekme oturumunda bir kez sessionStorage'da
+   önbelleğe alınır, personel/üye/kiralama/talep gibi oturuma özgü veriler
+   ise güncel kalmaları için her seferinde taze çekilir.
+   ------------------------------------------------------------------------- */
+
+const PUBLIC_CACHE_KEY = 'kutuphanePublicCache_v1';
+const PUBLIC_CACHE_TTL_MS = 60 * 1000;
+
+function readPublicSharedCache() {
+  try {
+    const raw = sessionStorage.getItem(PUBLIC_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || (Date.now() - parsed.savedAt) > PUBLIC_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch (e) { return null; }
+}
+
+function writePublicSharedCache(data) {
+  try { sessionStorage.setItem(PUBLIC_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data })); }
+  catch (e) { /* sessionStorage dolu/kapalı olabilir — sorun değil, sadece önbellek atlanır */ }
+}
+
+async function syncPublicFromSupabase() {
+  const [staffRes, membersRes, rentalsRes, requestsRes] = await Promise.all([
+    sb.from('staff').select('*'),
+    sb.from('members').select('*'),
+    sb.from('rentals').select('*'),
+    sb.from('requests').select('*')
+  ]);
+
+  let shared = readPublicSharedCache();
+  if (!shared) {
+    const [libraries, categories, books, events, settingsRows] = await Promise.all([
+      sb.from('libraries').select('*'),
+      sb.from('categories').select('*'),
+      sb.from('books').select('*'),
+      sb.from('events').select('*'),
+      sb.from('settings').select('*').limit(1)
+    ]);
+    const settingsRow = (settingsRows.data || [])[0] || {};
+    shared = {
+      libraries: (libraries.data || []).map(mapLibraryFromDb),
+      categories: (categories.data || []).map(c => ({ id: c.id, name: c.name })),
+      categoryMode: settingsRow.category_mode || 'single',
+      books: (books.data || []).map(mapBookFromDb),
+      events: (events.data || []).map(mapEventFromDb),
+      settings: {
+        smtp: settingsRow.smtp || defaultSettings().smtp,
+        sms: settingsRow.sms || defaultSettings().sms,
+        reportTemplate: settingsRow.report_template || defaultSettings().reportTemplate,
+        policies: settingsRow.policies || defaultSettings().policies,
+        heroPhoto: settingsRow.hero_photo || '',
+        siteContent: settingsRow.site_content || {}
+      }
+    };
+    writePublicSharedCache(shared);
+  }
+
+  _dataCache = {
+    ..._dataCache,
+    ...shared,
+    staff: (staffRes.data || []).map(mapStaffFromDb),
+    users: (membersRes.data || []).map(mapMemberFromDb),
+    rentals: (rentalsRes.data || []).map(mapRentalFromDb),
+    requests: (requestsRes.data || []).map(mapRequestFromDb)
+  };
+  _dataSynced = true;
+  return _dataCache;
+}
+
 function resetDemo() {
   // Canlı/paylaşımlı veritabanında "sıfırlama" anlamsız ve tehlikeli
   // olduğu için bu buton artık sadece oturumu kapatır.
@@ -1513,6 +1593,6 @@ async function initAdminPage(activeKey, opts) {
 /* Halka açık sayfalar (index.html, uye-girisi.html, uye-basvuru.html) için:
    veriyi çeker ve mevcut üye oturumunu (varsa) yükler. */
 async function initPublicPage() {
-  await syncFromSupabase();
+  await syncPublicFromSupabase();
   await loadCurrentSession();
 }

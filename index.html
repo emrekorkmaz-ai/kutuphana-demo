@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="assets/style.css" rel="stylesheet">
 
 <style>
@@ -594,7 +594,7 @@ textarea:focus-visible,
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/supabase-config.js"></script>
 <script src="assets/app.js"></script>
@@ -602,9 +602,9 @@ textarea:focus-visible,
 /* Kütüphane fotoğrafı Site Yönetimi'nden yüklenmemişse (lib.photoUrl boşsa)
    kullanılan varsayılan görseller — kütüphane id'sine göre eşleşir. */
 const LIBRARY_PHOTOS = {
-  '8f677a29-5216-4476-bd20-c10c9ef6f1eb': 'assets/library-nuri-ulusu-default.png',
-  'cdf14bb9-f784-4df5-843e-2cc9c4ec8c17': 'assets/library-ulku-ongun-default.png',
-  'd86cddd7-5211-48e1-9230-8c349484df71': 'assets/library-leyla-kurk-default.png'
+  '8f677a29-5216-4476-bd20-c10c9ef6f1eb': 'assets/library-nuri-ulusu-default.jpg',
+  'cdf14bb9-f784-4df5-843e-2cc9c4ec8c17': 'assets/library-ulku-ongun-default.jpg',
+  'd86cddd7-5211-48e1-9230-8c349484df71': 'assets/library-leyla-kurk-default.jpg'
 };
 
 const ILLUSTRATIONS = {
@@ -658,14 +658,11 @@ const MONTHS_TR = ['OCA', 'ŞUB', 'MAR', 'NİS', 'MAY', 'HAZ', 'TEM', 'AĞU', 'E
 
 /* ---------- Hero ---------- */
 
-/* Ana sayfa hero görseli: assets/wall_hero.* — uzantı ileride değişirse (webp/jpg/png)
-   diye sırayla dener; hiçbiri yüklenemezse gradyan + illüstrasyona düşer. */
+/* Ana sayfa hero görseli: assets/wall_hero.* — şu an sadece .jpg mevcut.
+   Daha iyi bir format (webp/avif) eklenirse listenin başına ekleyin;
+   olmayan dosyaları listede tutmak her yüklemede gereksiz 404 isteğine yol açar. */
 const HERO_PHOTO_CANDIDATES = [
-  'assets/wall_hero.avif',
-  'assets/wall_hero.webp',
-  'assets/wall_hero.jpg',
-  'assets/wall_hero.jpeg',
-  'assets/wall_hero.png'
+  'assets/wall_hero.jpg'
 ];
 
 function loadHeroPhoto(candidates, i) {
