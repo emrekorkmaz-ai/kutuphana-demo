@@ -1,0 +1,14 @@
+User-agent: *
+Disallow: /personel-girisi.html
+Disallow: /panel.html
+Disallow: /kitaplar.html
+Disallow: /odunc.html
+Disallow: /uyeler.html
+Disallow: /personel.html
+Disallow: /rapor.html
+Disallow: /imha.html
+Disallow: /talepler.html
+Disallow: /toplu-bildirim.html
+Disallow: /site-yonetimi.html
+
+Sitemap: https://yenisehir.vercel.app/sitemap.xml

@@ -211,7 +211,7 @@ let _dataCache = {
   books: [], users: [], rentals: [], retirements: [], events: [], feedback: [], requests: [],
   sliderContent: [], formFields: { book: [], member: [], staff: [] }, smsTemplates: [], emailTemplates: [],
   broadcasts: [], settings: defaultSettings(), fieldLabels: { book: {}, member: {}, staff: {} },
-  activityLogs: [], notificationLog: []
+  activityLogs: [], notificationLog: [], memberCount: null
 };
 let _dataSynced = false;
 
@@ -375,12 +375,13 @@ async function syncPublicFromSupabase() {
 
   let shared = readPublicSharedCache();
   if (!shared) {
-    const [libraries, categories, books, events, settingsRows] = await Promise.all([
+    const [libraries, categories, books, events, settingsRows, memberCountRes] = await Promise.all([
       sb.from('libraries').select('*'),
       sb.from('categories').select('*'),
       sb.from('books').select('*'),
       sb.from('events').select('*'),
-      sb.from('settings').select('*').limit(1)
+      sb.from('settings').select('*').limit(1),
+      sb.rpc('public_member_count')
     ]);
     const settingsRow = (settingsRows.data || [])[0] || {};
     shared = {
@@ -396,7 +397,8 @@ async function syncPublicFromSupabase() {
         policies: settingsRow.policies || defaultSettings().policies,
         heroPhoto: settingsRow.hero_photo || '',
         siteContent: settingsRow.site_content || {}
-      }
+      },
+      memberCount: typeof memberCountRes.data === 'number' ? memberCountRes.data : null
     };
     writePublicSharedCache(shared);
   }

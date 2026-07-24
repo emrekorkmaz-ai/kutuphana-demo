@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Üyelik Başvurusu - Yenişehir Kütüphaneleri</title>
+<meta name="description" content="Yenişehir Kütüphaneleri'ne üye olmak için başvuru formu — birkaç adımda üyeliğinizi tamamlayın.">
 <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link href="vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,15 +28,15 @@
   <!-- ADIM 1 -->
   <div class="card p-4" id="step1">
     <div class="row">
-      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.name">Ad Soyad *</label><input type="text" id="bName" class="form-control"></div>
-      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.phone">Telefon *</label><input type="text" id="bPhone" class="form-control" placeholder="05XXXXXXXXX"></div>
-      <div class="col-md-6 mb-3"><label class="form-label">Şifre *</label><input type="password" id="bPassword" class="form-control" placeholder="En az 6 karakter"></div>
-      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.email">E-posta</label><input type="email" id="bEmail" class="form-control" placeholder="ornek@eposta.com"></div>
-      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.birthDate">Doğum Tarihi</label><input type="date" id="bBirth" class="form-control"></div>
-      <div class="col-md-6 mb-3"><label class="form-label" data-field="member.nationalId">T.C. Kimlik No</label><input type="text" id="bNational" maxlength="11" class="form-control" placeholder="11 haneli"></div>
-      <div class="col-12 mb-3"><label class="form-label" data-field="member.address">Adres</label><input type="text" id="bAddress" class="form-control"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" for="bName" data-field="member.name">Ad Soyad *</label><input type="text" id="bName" class="form-control"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" for="bPhone" data-field="member.phone">Telefon *</label><input type="text" id="bPhone" class="form-control" placeholder="05XXXXXXXXX"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" for="bPassword">Şifre *</label><input type="password" id="bPassword" class="form-control" placeholder="En az 6 karakter"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" for="bEmail" data-field="member.email">E-posta</label><input type="email" id="bEmail" class="form-control" placeholder="ornek@eposta.com"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" for="bBirth" data-field="member.birthDate">Doğum Tarihi</label><input type="date" id="bBirth" class="form-control"></div>
+      <div class="col-md-6 mb-3"><label class="form-label" for="bNational" data-field="member.nationalId">T.C. Kimlik No</label><input type="text" id="bNational" maxlength="11" class="form-control" placeholder="11 haneli"></div>
+      <div class="col-12 mb-3"><label class="form-label" for="bAddress" data-field="member.address">Adres</label><input type="text" id="bAddress" class="form-control"></div>
       <div class="col-12 mb-3">
-        <label class="form-label" data-field="member.library">Üye Olmak İstediğiniz Kütüphane *</label>
+        <label class="form-label" for="bLibrary" data-field="member.library">Üye Olmak İstediğiniz Kütüphane *</label>
         <select id="bLibrary" class="form-select"></select>
       </div>
       <div class="col-12" id="extraFieldsHolder"></div>

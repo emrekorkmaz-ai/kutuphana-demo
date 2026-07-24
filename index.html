@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0d2a5e">
 <title>Yenişehir Kütüphaneleri - Mersin Yenişehir Belediyesi</title>
+<meta name="description" content="Mersin Yenişehir Belediyesi Kütüphaneleri: kitap kataloğunu tarayın, üyelik başvurusu yapın, etkinlikleri ve çalışma saatlerini görün.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -698,7 +699,7 @@ function renderHero() {
   const totalCopies = data.books.reduce((s, b) => s + b.total, 0);
   const stats = [
     { icon: 'bi-book', num: totalCopies.toLocaleString('tr-TR'), lbl: 'Kitap' },
-    { icon: 'bi-people', num: data.users.length.toLocaleString('tr-TR'), lbl: 'Üye' },
+    { icon: 'bi-people', num: (data.memberCount !== null ? data.memberCount : data.users.length).toLocaleString('tr-TR'), lbl: 'Üye' },
     { icon: 'bi-building', num: data.libraries.length, lbl: 'Kütüphane' },
     { icon: 'bi-calendar-event', num: data.events.length, lbl: 'Etkinlik' }
   ];

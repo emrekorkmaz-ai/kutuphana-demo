@@ -169,8 +169,11 @@ select:focus-visible,
 
 /* ---------- Rozetler ---------- */
 
-.badge.bg-orange { background-color: var(--turuncu) !important; color: #fff; }
-.badge.bg-green { background-color: var(--yesil) !important; color: #fff; }
+/* Beyaz metin bu iki tonda WCAG AA kontrastını (4.5:1) geçemiyordu;
+   koyu metin turuncuda 6.6:1, yeşilde 6.1:1 veriyor — marka renkleri
+   değişmeden okunabilirlik düzeliyor. */
+.badge.bg-orange { background-color: var(--turuncu) !important; color: var(--ink); }
+.badge.bg-green { background-color: var(--yesil) !important; color: var(--ink); }
 .badge.bg-navy { background-color: var(--lacivert) !important; color: #fff; }
 
 /* ---------- Butonlar (kurumsal aksan) ---------- */
