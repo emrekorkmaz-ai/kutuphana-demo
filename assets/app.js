@@ -133,7 +133,7 @@ function normalizeTrPhone(input) {
 }
 
 function libraryName(id) {
-  if (id === 'all') return 'Tüm Kütüphaneler';
+  if (id === 'all' || !id) return 'Tüm Kütüphaneler';
   const lib = getData().libraries.find(l => l.id === id);
   return lib ? lib.name : id;
 }
