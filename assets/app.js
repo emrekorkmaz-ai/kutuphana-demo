@@ -803,6 +803,19 @@ async function deleteFormField(formKey, fieldId) {
    Kütüphane yönetimi
    ------------------------------------------------------------------------- */
 
+/* Kütüphane fotoğrafını "library-photos" bucket'ına yükler ve public URL
+   döner. photo_url sütununa artık base64 değil, bu URL yazılır — aksi
+   halde her herkese açık sayfa açılışında libraries tablosu MB'larca veri
+   döndürür (bkz. supabase/migrate-library-photos-to-storage.js). */
+async function uploadLibraryPhoto(file) {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `libraries/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from('library-photos').upload(path, file, { contentType: file.type || 'image/jpeg' });
+  if (error) return { ok: false, msg: 'Fotoğraf yüklenemedi: ' + error.message };
+  const { data } = sb.storage.from('library-photos').getPublicUrl(path);
+  return { ok: true, url: data.publicUrl };
+}
+
 async function addLibrary(payload) {
   const row = { name: payload.name, weekday: payload.weekday || '', weekend: payload.weekend || '', address: payload.address || '', phone: payload.phone || '', status: payload.status || 'active', photo_url: payload.photoUrl || '' };
   const { data, error } = await sb.from('libraries').insert(row).select().single();

@@ -780,24 +780,25 @@ function renderLibrariesTab() {
     </tr>`).join('') || '<tr><td colspan="8" class="text-center text-muted py-3">Kayıt yok.</td></tr>';
 }
 
-let libPhotoDataUrl = '';
+/* libPhotoUrl: kütüphanenin kayıtlı (veya az önce Storage'a yüklenmiş)
+   fotoğraf URL'i. libPhotoFile: kullanıcının az önce seçtiği, henüz
+   Storage'a yüklenmemiş yeni dosya — saveLibrary() sırasında yüklenir. */
+let libPhotoUrl = '';
+let libPhotoFile = null;
 
 function handleLibraryPhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    libPhotoDataUrl = e.target.result;
-    const img = document.getElementById('libPhotoPreview');
-    img.src = libPhotoDataUrl;
-    img.classList.remove('d-none');
-    document.getElementById('libPhotoRemoveBtn').classList.remove('d-none');
-  };
-  reader.readAsDataURL(file);
+  libPhotoFile = file;
+  const img = document.getElementById('libPhotoPreview');
+  img.src = URL.createObjectURL(file);
+  img.classList.remove('d-none');
+  document.getElementById('libPhotoRemoveBtn').classList.remove('d-none');
 }
 
 function removeLibraryPhoto() {
-  libPhotoDataUrl = '';
+  libPhotoUrl = '';
+  libPhotoFile = null;
   document.getElementById('libPhotoInput').value = '';
   document.getElementById('libPhotoPreview').classList.add('d-none');
   document.getElementById('libPhotoRemoveBtn').classList.add('d-none');
@@ -815,10 +816,11 @@ function editLibrary(id) {
   document.getElementById('libStatus').value = lib.status || 'active';
   document.getElementById('libWeekday').value = lib.weekday || '';
   document.getElementById('libWeekend').value = lib.weekend || '';
-  libPhotoDataUrl = lib.photoUrl || '';
+  libPhotoUrl = lib.photoUrl || '';
+  libPhotoFile = null;
   document.getElementById('libPhotoInput').value = '';
   const img = document.getElementById('libPhotoPreview');
-  if (libPhotoDataUrl) { img.src = libPhotoDataUrl; img.classList.remove('d-none'); document.getElementById('libPhotoRemoveBtn').classList.remove('d-none'); }
+  if (libPhotoUrl) { img.src = libPhotoUrl; img.classList.remove('d-none'); document.getElementById('libPhotoRemoveBtn').classList.remove('d-none'); }
   else { img.classList.add('d-none'); document.getElementById('libPhotoRemoveBtn').classList.add('d-none'); }
   document.getElementById('libSaveBtn').textContent = 'Güncelle';
   document.getElementById('libCancelBtn').classList.remove('d-none');
@@ -841,6 +843,12 @@ function cancelLibraryEdit() {
 async function saveLibrary() {
   const name = document.getElementById('libName').value.trim();
   if (!name) { showToast('Kütüphane adı zorunludur.', 'danger'); return; }
+  if (libPhotoFile) {
+    const uploaded = await uploadLibraryPhoto(libPhotoFile);
+    if (!uploaded.ok) { showToast(uploaded.msg, 'danger'); return; }
+    libPhotoUrl = uploaded.url;
+    libPhotoFile = null;
+  }
   const payload = {
     name,
     address: document.getElementById('libAddress').value.trim(),
@@ -848,7 +856,7 @@ async function saveLibrary() {
     status: document.getElementById('libStatus').value,
     weekday: document.getElementById('libWeekday').value.trim(),
     weekend: document.getElementById('libWeekend').value.trim(),
-    photoUrl: libPhotoDataUrl
+    photoUrl: libPhotoUrl
   };
   const res = editingLibraryId ? await updateLibrary(editingLibraryId, payload) : await addLibrary(payload);
   if (!res.ok) { showToast(res.msg, 'danger'); return; }
