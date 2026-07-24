@@ -803,14 +803,40 @@ async function deleteFormField(formKey, fieldId) {
    Kütüphane yönetimi
    ------------------------------------------------------------------------- */
 
-/* Kütüphane fotoğrafını "library-photos" bucket'ına yükler ve public URL
-   döner. photo_url sütununa artık base64 değil, bu URL yazılır — aksi
-   halde her herkese açık sayfa açılışında libraries tablosu MB'larca veri
-   döndürür (bkz. supabase/migrate-library-photos-to-storage.js). */
+/* Seçilen dosyayı tarayıcıda (canvas ile) en uzun kenarı maxDimension olacak
+   şekilde küçültüp JPEG'e çevirir — kütüphane kartlarında ~360x200 gösterilen
+   bir fotoğraf için telefon kamerasından gelen 4-5MB'lık orijinali olduğu
+   gibi yüklemenin anlamı yok. */
+function resizeImageFile(file, maxDimension, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale) || 1;
+      const h = Math.round(img.height * scale) || 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Görsel işlenemedi.')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Görsel okunamadı.')); };
+    img.src = objectUrl;
+  });
+}
+
+/* Kütüphane fotoğrafını küçültüp "library-photos" bucket'ına yükler ve
+   public URL döner. photo_url sütununa artık base64 değil, bu URL yazılır —
+   aksi halde her herkese açık sayfa açılışında libraries tablosu MB'larca
+   veri döndürür (bkz. supabase/migrate-library-photos-to-storage.js). */
 async function uploadLibraryPhoto(file) {
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const path = `libraries/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await sb.storage.from('library-photos').upload(path, file, { contentType: file.type || 'image/jpeg' });
+  let blob;
+  try { blob = await resizeImageFile(file, 900, 0.8); }
+  catch (e) { return { ok: false, msg: e.message }; }
+  const path = `libraries/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+  const { error } = await sb.storage.from('library-photos').upload(path, blob, { contentType: 'image/jpeg' });
   if (error) return { ok: false, msg: 'Fotoğraf yüklenemedi: ' + error.message };
   const { data } = sb.storage.from('library-photos').getPublicUrl(path);
   return { ok: true, url: data.publicUrl };
